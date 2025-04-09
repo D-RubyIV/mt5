@@ -4,39 +4,17 @@
             "type": "TrendLine",
             "points": [
                 {
-                    "time": 1744118100,
-                    "logical": 2453,
-                    "price": 3022.6268848758464
+                    "time": 1744054200,
+                    "logical": 2386,
+                    "price": 3023.1196162528217
                 },
                 {
-                    "time": 1744143600,
-                    "logical": 2308,
-                    "price": 3022.6268848758464
+                    "time": 1744083900,
+                    "logical": 2415,
+                    "price": 3022.4694966139955
                 }
             ],
             "options": {
-                "lineColor": "#1E80F0",
-                "lineStyle": 0,
-                "width": 4
-            }
-        },
-        {
-            "type": "Box",
-            "points": [
-                {
-                    "time": 1744155900,
-                    "logical": 2491,
-                    "price": 2999.365643340858
-                },
-                {
-                    "time": 1744187400,
-                    "logical": 2526,
-                    "price": 2986.717796839729
-                }
-            ],
-            "options": {
-                "fillEnabled": true,
-                "fillColor": "rgba(255, 255, 255, 0.2)",
                 "lineColor": "#1E80F0",
                 "lineStyle": 0,
                 "width": 4
@@ -46,14 +24,14 @@
             "type": "TrendLine",
             "points": [
                 {
-                    "time": 1743768000,
-                    "logical": 2264,
-                    "price": 3135.8168171557563
+                    "time": 1744043400,
+                    "logical": 2374,
+                    "price": 3040.541607223476
                 },
                 {
-                    "time": null,
-                    "logical": 660,
-                    "price": 3135.8168171557563
+                    "time": 1744083000,
+                    "logical": 2414,
+                    "price": 3038.297137697517
                 }
             ],
             "options": {
@@ -63,21 +41,83 @@
             }
         },
         {
-            "type": "HorizontalLine",
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1744021800,
+                    "logical": 2350,
+                    "price": 3036.420794582393
+                },
+                {
+                    "time": 1744038900,
+                    "logical": 2369,
+                    "price": 3047.9718510158013
+                }
+            ],
+            "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        },
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1744029900,
+                    "logical": 2359,
+                    "price": 3054.2328713318284
+                },
+                {
+                    "time": 1744088400,
+                    "logical": 2420,
+                    "price": 3053.7839774266367
+                }
+            ],
+            "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        },
+        {
+            "type": "TrendLine",
             "points": [
                 {
                     "time": 1744016400,
                     "logical": 2344,
-                    "price": 3048.846144469526
+                    "price": 3082.994717832957
+                },
+                {
+                    "time": 1744065900,
+                    "logical": 2395,
+                    "price": 3070.38309255079
                 }
             ],
             "options": {
-                "lineColor": "rgba(72, 222, 14, 1)",
+                "lineColor": "#1E80F0",
                 "lineStyle": 0,
-                "width": 4,
-                "time": 1744016400,
-                "logical": 2344,
-                "price": 3048.846144469526
+                "width": 4
+            }
+        },
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1744001100,
+                    "logical": 2327,
+                    "price": 3072.9621218961624
+                },
+                {
+                    "time": 1744041600,
+                    "logical": 2372,
+                    "price": 3068.84469751693
+                }
+            ],
+            "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
             }
         }
     ]

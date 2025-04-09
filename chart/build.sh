@@ -35,4 +35,3 @@ else
 fi
 
 echo -e "\n${GREEN}[BUILD SUCCESS]${NC}"
-read -p "Nhấn Enter để thoát..."

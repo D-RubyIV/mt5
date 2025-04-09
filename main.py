@@ -157,8 +157,8 @@ class TradingView(QMainWindow):
         self.data_thread.stop()
 
     def closeEvent(self, event):
-        print("Close")
         self.chart.toolbox.export_drawings('draw.json')
+        print("Close")
 
 
 if __name__ == "__main__":
