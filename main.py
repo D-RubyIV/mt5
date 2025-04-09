@@ -1,15 +1,19 @@
 import os
 import sys
-import talib
+
 import MetaTrader5 as Mt5
 import pandas as pd
+import talib
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from pandas import DataFrame
 
 from chart.lightweight_charts.widgets import QtChart
+from technicals import Compute
 from util import DataUtil
+
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
+
 
 class DataUpdater(QThread):
     data_updated = pyqtSignal(DataFrame)
@@ -29,7 +33,7 @@ class DataUpdater(QThread):
             if data is not None and not data.empty:
                 # noinspection PyUnresolvedReferences
                 self.data_updated.emit(data)
-            self.msleep(2000)
+            self.msleep(30000)
 
     def stop(self):
         self.running = False
@@ -87,7 +91,6 @@ class TradingView(QMainWindow):
 
         self.chart = QtChart(self.widget, toolbox=True)
 
-
         self.chart.layout(
             background_color="#ffffff",
             text_color="#000000"
@@ -113,7 +116,7 @@ class TradingView(QMainWindow):
                 Mt5.TIMEFRAME_H4,
                 Mt5.TIMEFRAME_D1,
             ),
-            default=Mt5.TIMEFRAME_M15,
+            default=Mt5.TIMEFRAME_H1,
             func=lambda chart: self.start_interval(chart)
         )
         self.chart.events.new_bar += self.on_new_bar
@@ -161,24 +164,86 @@ class TradingView(QMainWindow):
         print('New bar event!')
 
     def update_chart(self, df):
-        close_prices = df["close"]
+        # Tính các chỉ báo kỹ thuật
+        df["MA20"] = talib.SMA(df["close"], timeperiod=20)
+        df["RSI14"] = talib.RSI(df["close"], timeperiod=14)
+        df["K"], df["D"] = talib.STOCH(df["high"], df["low"], df["close"])
+        df["CCI20"] = talib.CCI(df["high"], df["low"], df["close"], timeperiod=20)
+        df["ADX"] = talib.ADX(df["high"], df["low"], df["close"])
+        df["+DI"] = talib.PLUS_DI(df["high"], df["low"], df["close"])
+        df["-DI"] = talib.MINUS_DI(df["high"], df["low"], df["close"])
+        df["AO"] = talib.APO(df["close"])
+        df["MOM"] = talib.MOM(df["close"], timeperiod=10)
+        df["MACD"], df["MACD_signal"], _ = talib.MACD(df["close"])
+        df["BB_upper"], df["BB_middle"], df["BB_lower"] = talib.BBANDS(df["close"])
+        df["PSAR"] = talib.SAR(df["high"], df["low"])
 
-        # Tính toán Moving Average Convergence Divergence (MACD)
-        macd, macd_signal, macd_hist = talib.MACD(close_prices, fastperiod=12, slowperiod=26, signalperiod=9)
-        # Tính toán Relative Strength Index (RSI)
-        rsi = talib.RSI(close_prices, timeperiod=14)
-        # Tính toán Bollinger Bands
-        upperband, middleband, lowerband = talib.BBANDS(close_prices, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
-
-
+        # Cập nhật biểu đồ
         self.chart.set(df=df, keep_drawings=True)
-        # self.chart.marker(
-        #     position="above",
-        #     color="#000000",
-        #     shape="arrow_down",
-        #     text="Sell"
-        # )
-        # self.chart.watermark("XAUUSD")
+
+        # Danh sách indicator + trọng số
+        # @formatter:off
+        indicators = [
+            {"name": "MA", "weight": 1.0, "compute": lambda l, p, p2: Compute.MA(l['MA20'], l['close'])},
+            {"name": "RSI", "weight": 1.5, "compute": lambda l, p, p2: Compute.RSI(l['RSI14'], p['RSI14'])},
+            {"name": "Stoch", "weight": 1.0, "compute": lambda l, p, p2: Compute.Stoch(l['K'], l['D'], p['K'], p['D'])},
+            {"name": "CCI20", "weight": 1.0, "compute": lambda l, p, p2: Compute.CCI20(l['CCI20'], p['CCI20'])},
+            {"name": "ADX", "weight": 2.0, "compute": lambda l, p, p2: Compute.ADX(l['ADX'], l['+DI'], l['-DI'], p['+DI'], p['-DI'])},
+            {"name": "AO", "weight": 1.2, "compute": lambda l, p, p2: Compute.AO(l['AO'], p['AO'], p2['AO'])},
+            {"name": "MOM", "weight": 1.0, "compute": lambda l, p, p2: Compute.Mom(l['MOM'], p['MOM'])},
+            {"name": "MACD", "weight": 2.0, "compute": lambda l, p, p2: Compute.MACD(l['MACD'], l['MACD_signal'])},
+            {"name": "BBBuy", "weight": 1.5, "compute": lambda l, p, p2: Compute.BBBuy(l['close'], l['BB_lower'])},
+            {"name": "BBSell", "weight": 1.5, "compute": lambda l, p, p2: Compute.BBSell(l['close'], l['BB_upper'])},
+            {"name": "PSAR", "weight": 1.0, "compute": lambda l, p, p2: Compute.PSAR(l['PSAR'], l['open'])},
+        ]
+        # @formatter:on
+        rows = df.to_dict("records")
+        for i in range(2, len(rows)):
+            last = df.iloc[i]
+            prev = df.iloc[i - 1]
+            prev2 = df.iloc[i - 2]
+
+            buy_score = 0
+            sell_score = 0
+            neutral_score = 0
+            result_detail = []
+
+            for ind in indicators:
+                signal = ind["compute"](last, prev, prev2)
+                weight = ind["weight"]
+                result_detail.append((ind["name"], signal, weight))
+
+                if signal == "BUY":
+                    buy_score += weight
+                elif signal == "SELL":
+                    sell_score += weight
+                else:
+                    neutral_score += weight
+
+            # print(f"Time: {last['time']}, BUY: {buy_score}, SELL: {sell_score}, NEUTRAL: {neutral_score}")
+            # for name, signal, weight in result_detail:
+            #     print(f" - {name}: {signal} (w={weight})")
+
+            marker_text = None
+            if buy_score > sell_score + neutral_score:
+                marker_text = "Buy"
+                position = "below"
+                color = "#00FF00"
+                shape = "arrow_up"
+            elif sell_score > buy_score + neutral_score:
+                marker_text = "Sell"
+                position = "above"
+                color = "#FF0000"
+                shape = "arrow_down"
+
+            if marker_text:
+                self.chart.marker(
+                    time=last["time"],
+                    position=position,
+                    color=color,
+                    shape=shape,
+                    text=marker_text
+                )
 
     def draw(self):
         self.show()
