@@ -5,16 +5,38 @@
             "points": [
                 {
                     "time": 1744118100,
-                    "logical": 1333,
+                    "logical": 445,
                     "price": 3022.6268848758464
                 },
                 {
                     "time": 1744143600,
-                    "logical": 1418,
+                    "logical": 436,
                     "price": 3022.6268848758464
                 }
             ],
             "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        },
+        {
+            "type": "Box",
+            "points": [
+                {
+                    "time": 1744155900,
+                    "logical": 483,
+                    "price": 2999.365643340858
+                },
+                {
+                    "time": 1744187400,
+                    "logical": 518,
+                    "price": 2986.717796839729
+                }
+            ],
+            "options": {
+                "fillEnabled": true,
+                "fillColor": "rgba(255, 255, 255, 0.2)",
                 "lineColor": "#1E80F0",
                 "lineStyle": 0,
                 "width": 4
