@@ -5,12 +5,12 @@
             "points": [
                 {
                     "time": 1744118100,
-                    "logical": 445,
+                    "logical": 2453,
                     "price": 3022.6268848758464
                 },
                 {
                     "time": 1744143600,
-                    "logical": 436,
+                    "logical": 2308,
                     "price": 3022.6268848758464
                 }
             ],
@@ -25,12 +25,12 @@
             "points": [
                 {
                     "time": 1744155900,
-                    "logical": 483,
+                    "logical": 2491,
                     "price": 2999.365643340858
                 },
                 {
                     "time": 1744187400,
-                    "logical": 518,
+                    "logical": 2526,
                     "price": 2986.717796839729
                 }
             ],
@@ -40,6 +40,44 @@
                 "lineColor": "#1E80F0",
                 "lineStyle": 0,
                 "width": 4
+            }
+        },
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1743768000,
+                    "logical": 2264,
+                    "price": 3135.8168171557563
+                },
+                {
+                    "time": null,
+                    "logical": 660,
+                    "price": 3135.8168171557563
+                }
+            ],
+            "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        },
+        {
+            "type": "HorizontalLine",
+            "points": [
+                {
+                    "time": 1744016400,
+                    "logical": 2344,
+                    "price": 3048.846144469526
+                }
+            ],
+            "options": {
+                "lineColor": "rgba(72, 222, 14, 1)",
+                "lineStyle": 0,
+                "width": 4,
+                "time": 1744016400,
+                "logical": 2344,
+                "price": 3048.846144469526
             }
         }
     ]

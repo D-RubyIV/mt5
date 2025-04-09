@@ -1,3 +1,4 @@
+import os
 import sys
 import talib
 import MetaTrader5 as Mt5
@@ -8,7 +9,7 @@ from pandas import DataFrame
 
 from chart.lightweight_charts.widgets import QtChart
 from util import DataUtil
-
+os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
 
 class DataUpdater(QThread):
     data_updated = pyqtSignal(DataFrame)
@@ -145,7 +146,6 @@ class TradingView(QMainWindow):
         # Tính toán Bollinger Bands
         upperband, middleband, lowerband = talib.BBANDS(close_prices, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
 
-        print(df)
 
         self.chart.set(df=df, keep_drawings=True)
         # self.chart.watermark("XAUUSD")
@@ -159,7 +159,6 @@ class TradingView(QMainWindow):
     def closeEvent(self, event):
         print("Close")
         self.chart.toolbox.export_drawings('draw.json')
-        print(self.chart.toolbox.drawings)
 
 
 if __name__ == "__main__":

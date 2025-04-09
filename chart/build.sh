@@ -8,7 +8,7 @@ NC='\033[0m'
 
 ERROR="${RED}[ERROR]${NC} "
 INFO="${CYAN}[INFO]${NC} "
-WARNING="${WARNING}[WARNING]${NC} "
+WARNING="${YELLOW}[WARNING]${NC} "  # <--- sửa ở đây
 
 rm -rf dist/bundle.js dist/typings/
 
@@ -20,6 +20,8 @@ fi
 
 npx rollup -c rollup.config.js
 if [[ $? -ne 0 ]]; then
+    echo -e "${ERROR}build failed!"
+    read -p "Nhấn Enter để thoát..."
     exit 1
 fi
 
@@ -28,7 +30,9 @@ if [[ $? -eq 0 ]]; then
     echo -e "${INFO}copied bundle.js, style.css into python package"
 else
     echo -e "${ERROR}could not copy dist into python package ?"
+    read -p "Nhấn Enter để thoát..."
     exit 1
 fi
-echo -e "\n${GREEN}[BUILD SUCCESS]${NC}"
 
+echo -e "\n${GREEN}[BUILD SUCCESS]${NC}"
+read -p "Nhấn Enter để thoát..."

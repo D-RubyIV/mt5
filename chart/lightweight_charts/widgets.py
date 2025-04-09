@@ -2,7 +2,7 @@ import asyncio
 import html
 
 from .util import parse_event_message
-from lightweight_charts import abstract
+from . import abstract
 
 try:
     import wx.html2
@@ -108,6 +108,8 @@ class QtChart(abstract.AbstractChart):
         if using_pyside6:
             self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self.webview.load(QUrl.fromLocalFile(abstract.INDEX))
+        print(abstract.INDEX)
+        print("OK")
 
 
     def get_webview(self): return self.webview

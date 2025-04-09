@@ -3,11 +3,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config src/vite.config.js",
-    "build": "./build.sh"
+    "build": "build.sh"
   },
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/rollup-win32-x64-msvc": "^4.39.0",
     "rollup": "^4.13.0",
     "typescript": "^5.4.3",
     "vite": "^4.3.1"

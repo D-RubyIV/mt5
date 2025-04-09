@@ -1,6 +1,6 @@
 import { Drawing } from "../drawing/drawing";
 import { DrawingOptions } from "../drawing/options";
-import { GlobalParams } from "../general/global-params";
+import { GlobalParams } from "../general";
 
 declare const window: GlobalParams;
 
@@ -11,9 +11,10 @@ export class ColorPicker {
         '#E15F5D','#E1B45F','#E2D947','#4BE940','#639AE1','#D7A0E8',
         '#E42C2A','#E49D30','#E7D827','#3CFF0A','#3275E4','#B06CE3',
         '#F3000D','#EE9A14','#F1DA13','#2DFC0F','#1562EE','#BB00EF',
-        '#B50911','#E3860E','#D2BD11','#48DE0E','#1455B4','#6E009F',
-        '#7C1713','#B76B12','#8D7A13','#479C12','#165579','#51007E',
+
     ]
+        //     '#B50911','#E3860E','#D2BD11','#48DE0E','#1455B4','#6E009F',
+        // '#7C1713','#B76B12','#8D7A13','#479C12','#165579','#51007E',
 
     public _div: HTMLDivElement;
     private saveDrawings: Function;
