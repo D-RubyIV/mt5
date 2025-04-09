@@ -41,6 +41,31 @@ class TradingView(QMainWindow):
     symbol = "XAUUSDm"
 
     def __init__(self):
+        timeframes = [
+            {
+                "key": "1m",
+                "value": Mt5.TIMEFRAME_M1
+            },
+            {
+                "key": "5m",
+                "value": Mt5.TIMEFRAME_M5
+            },
+            {
+                "key": "15m",
+                "value": Mt5.TIMEFRAME_M15
+            },
+            {
+                "key": "1h",
+                "value": Mt5.TIMEFRAME_H1
+            },
+            {
+                "key": "4h",
+                "value": Mt5.TIMEFRAME_H4
+            },
+        ]
+        keys_timeframes = tuple(tf["key"] for tf in timeframes)
+        print(keys_timeframes)
+        print(type(keys_timeframes))
         super().__init__()
         self.data_thread = None
         # Khởi tạo MT5
@@ -61,6 +86,7 @@ class TradingView(QMainWindow):
         self.widget.setLayout(self.layout)
 
         self.chart = QtChart(self.widget, toolbox=True)
+
 
         self.chart.layout(
             background_color="#ffffff",
@@ -139,15 +165,19 @@ class TradingView(QMainWindow):
 
         # Tính toán Moving Average Convergence Divergence (MACD)
         macd, macd_signal, macd_hist = talib.MACD(close_prices, fastperiod=12, slowperiod=26, signalperiod=9)
-
         # Tính toán Relative Strength Index (RSI)
         rsi = talib.RSI(close_prices, timeperiod=14)
-
         # Tính toán Bollinger Bands
         upperband, middleband, lowerband = talib.BBANDS(close_prices, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
 
 
         self.chart.set(df=df, keep_drawings=True)
+        # self.chart.marker(
+        #     position="above",
+        #     color="#000000",
+        #     shape="arrow_down",
+        #     text="Sell"
+        # )
         # self.chart.watermark("XAUUSD")
 
     def draw(self):
