@@ -1,0 +1,24 @@
+{
+    "XAUUSDm": [
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1744118100,
+                    "logical": 1333,
+                    "price": 3022.6268848758464
+                },
+                {
+                    "time": 1744143600,
+                    "logical": 1418,
+                    "price": 3022.6268848758464
+                }
+            ],
+            "options": {
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        }
+    ]
+}
