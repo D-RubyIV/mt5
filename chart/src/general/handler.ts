@@ -13,16 +13,15 @@ import {
     SeriesOptionsCommon,
     SeriesType,
     Time,
-    createChart
+    createChart, HistogramSeries, CandlestickSeries, LineSeries, createTextWatermark, createSeriesMarkers, SeriesMarker
 } from "lightweight-charts";
+import {GlobalParams, globalParamInit} from "./global-params";
+import {Legend} from "./legend";
+import {ToolBox} from "./toolbox";
+import {TopBar} from "./topbar";
 
-import { GlobalParams, globalParamInit } from "./global-params";
-import { Legend } from "./legend";
-import { ToolBox } from "./toolbox";
-import { TopBar } from "./topbar";
 
-
-export interface Scale{
+export interface Scale {
     width: number,
     height: number,
 }
@@ -77,13 +76,13 @@ export class Handler {
 
         this.wrapper.appendChild(this.div);
         window.containerDiv.append(this.wrapper)
-        
+
         this.chart = this._createChart();
         this.series = this.createCandlestickSeries();
         this.volumeSeries = this.createVolumeSeries();
 
         this.legend = new Legend(this)
-        
+
         document.addEventListener('keydown', (event) => {
             for (let i = 0; i < this.commandFunctions.length; i++) {
                 if (this.commandFunctions[i](event)) break
@@ -103,15 +102,14 @@ export class Handler {
         this.chart.resize(window.innerWidth * this.scale.width, (window.innerHeight * this.scale.height) - topBarOffset)
         this.wrapper.style.width = `${100 * this.scale.width}%`
         this.wrapper.style.height = `${100 * this.scale.height}%`
-        
+
         // TODO definitely a better way to do this
         if (this.scale.height === 0 || this.scale.width === 0) {
             // if (this.legend.div.style.display == 'flex') this.legend.div.style.display = 'none'
             if (this.toolBox) {
                 this.toolBox.div.style.display = 'none'
             }
-        }
-        else {
+        } else {
             // this.legend.div.style.display = 'flex'
             if (this.toolBox) {
                 this.toolBox.div.style.display = 'flex'
@@ -120,10 +118,10 @@ export class Handler {
     }
 
     private _createChart() {
-        return createChart(this.div, {
+        const options = {
             width: window.innerWidth * this.scale.width,
             height: window.innerHeight * this.scale.height,
-            layout:{
+            layout: {
                 textColor: window.pane.color,
                 background: {
                     color: '#000000',
@@ -149,13 +147,31 @@ export class Handler {
                 horzLines: {color: 'rgba(29, 30, 58, 5)'},
             },
             handleScroll: {vertTouchDrag: true},
-        })
+        }
+        const chart = createChart(this.div, options);
+        const firstPane = chart.panes()[0];
+        createTextWatermark(firstPane, {
+            horzAlign: 'center',
+            vertAlign: 'center',
+            lines: [{
+                text: 'Watermark Text',
+                color: 'rgba(255,0,0,0.5)',
+                fontSize: 50,
+            }],
+        });
+        return chart;
+    }
+
+    setSeriesMarkersCustom(series: ISeriesApi<SeriesType>, data: SeriesMarker<any>[]) {
+        const seriesMarkers = createSeriesMarkers(series, data);
+        const markers = seriesMarkers.markers();
+        seriesMarkers.setMarkers(markers as SeriesMarker<any>[]);
     }
 
     createCandlestickSeries() {
         const up = 'rgba(39, 157, 130, 100)'
         const down = 'rgba(200, 97, 100, 100)'
-        const candleSeries = this.chart.addCandlestickSeries({
+        const candleSeries = this.chart.addSeries(CandlestickSeries, {
             upColor: up, borderUpColor: up, wickUpColor: up,
             downColor: down, borderDownColor: down, wickDownColor: down
         });
@@ -166,7 +182,7 @@ export class Handler {
     }
 
     createVolumeSeries() {
-        const volumeSeries = this.chart.addHistogramSeries({
+        const volumeSeries = this.chart.addSeries(HistogramSeries, {
             color: '#26a69a',
             priceFormat: {type: 'volume'},
             priceScaleId: 'volume_scale',
@@ -178,7 +194,7 @@ export class Handler {
     }
 
     createLineSeries(name: string, options: DeepPartial<LineStyleOptions & SeriesOptionsCommon>) {
-        const line = this.chart.addLineSeries({...options});
+        const line = this.chart.addSeries(LineSeries, {...options});
         this._seriesList.push(line);
         this.legend.makeSeriesRow(name, line)
         return {
@@ -188,7 +204,7 @@ export class Handler {
     }
 
     createHistogramSeries(name: string, options: DeepPartial<HistogramStyleOptions & SeriesOptionsCommon>) {
-        const line = this.chart.addHistogramSeries({...options});
+        const line = this.chart.addSeries(HistogramSeries, {...options});
         this._seriesList.push(line);
         this.legend.makeSeriesRow(name, line)
         return {
@@ -214,7 +230,7 @@ export class Handler {
         return serialized;
     }
 
-    public static syncCharts(childChart:Handler, parentChart: Handler, crosshairOnly = false) {
+    public static syncCharts(childChart: Handler, parentChart: Handler, crosshairOnly = false) {
         function crosshairHandler(chart: Handler, point: any) {//point: BarData | LineData) {
             if (!point) {
                 chart.chart.clearCrosshairPosition()
@@ -234,10 +250,10 @@ export class Handler {
         const parentTimeScale = parentChart.chart.timeScale();
 
         const setChildRange = (timeRange: LogicalRange | null) => {
-            if(timeRange) childTimeScale.setVisibleLogicalRange(timeRange);
+            if (timeRange) childTimeScale.setVisibleLogicalRange(timeRange);
         }
         const setParentRange = (timeRange: LogicalRange | null) => {
-            if(timeRange) parentTimeScale.setVisibleLogicalRange(timeRange);
+            if (timeRange) parentTimeScale.setVisibleLogicalRange(timeRange);
         }
 
         const setParentCrosshair = (param: MouseEventParams) => {
@@ -248,14 +264,14 @@ export class Handler {
         }
 
         let selected = parentChart
+
         function addMouseOverListener(
             thisChart: Handler,
             otherChart: Handler,
             thisCrosshair: MouseEventHandler<Time>,
             otherCrosshair: MouseEventHandler<Time>,
             thisRange: LogicalRangeChangeEventHandler,
-            otherRange: LogicalRangeChangeEventHandler)
-        {
+            otherRange: LogicalRangeChangeEventHandler) {
             thisChart.wrapper.addEventListener('mouseover', () => {
                 if (selected === thisChart) return
                 selected = thisChart
@@ -266,6 +282,7 @@ export class Handler {
                 thisChart.chart.timeScale().subscribeVisibleLogicalRangeChange(otherRange)
             })
         }
+
         addMouseOverListener(
             parentChart,
             childChart,
@@ -314,16 +331,13 @@ export class Handler {
                     searchWindow.style.display = 'flex';
                     sBox.focus();
                     return true
-                }
-                else return false
-            }
-            else if (event.key === 'Enter' || event.key === 'Escape') {
+                } else return false
+            } else if (event.key === 'Enter' || event.key === 'Escape') {
                 if (event.key === 'Enter') window.callbackFunction(`search${chart.id}_~_${sBox.value}`)
                 searchWindow.style.display = 'none'
                 sBox.value = ''
                 return true
-            }
-            else return false
+            } else return false
         })
         sBox.addEventListener('input', () => sBox.value = sBox.value.toUpperCase())
         return {
@@ -340,12 +354,14 @@ export class Handler {
         // TODO below can be css (animate)
         let rotation = 0;
         const speed = 10;
+
         function animateSpinner() {
             if (!chart.spinner) return;
             rotation += speed
             chart.spinner.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
             requestAnimationFrame(animateSpinner)
         }
+
         animateSpinner();
     }
 
@@ -359,6 +375,7 @@ export class Handler {
         '--color': 'color',
         '--active-color': 'activeColor',
     }
+
     public static setRootStyles(styles: any) {
         const rootStyle = document.documentElement.style;
         for (const [property, valueKey] of Object.entries(this._styleMap)) {
