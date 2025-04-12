@@ -48,7 +48,6 @@ class DataUpdater(QThread):
     def stop(self):
         self.running = False
         self.quit()
-        self.wait()
 
 
 class TradingView(QMainWindow):
@@ -99,23 +98,23 @@ class TradingView(QMainWindow):
         self.widget = QWidget()
         self.widget.setLayout(self.layout)
 
-        self.chart = QtChart(self.widget, toolbox=True)
+        self._chart = QtChart(self.widget, toolbox=True)
 
-        self.chart.layout(
+        self._chart.layout(
             background_color="#ffffff",
             text_color="#000000"
         )
-        self.chart.grid(
+        self._chart.grid(
             color="#00000033"
         )
-        self.chart.candle_style(
+        self._chart.candle_style(
             up_color="#4CAF50",
             down_color="#000000",
             border_down_color="#000000",
             border_up_color="#000000",
 
         )
-        self.chart.topbar.switcher(
+        self._chart.topbar.switcher(
             'timeframe',
             (
                 Mt5.TIMEFRAME_M1,
@@ -126,35 +125,37 @@ class TradingView(QMainWindow):
                 Mt5.TIMEFRAME_H4,
                 Mt5.TIMEFRAME_D1,
             ),
-            default=Mt5.TIMEFRAME_M5,
-            func=lambda chart: self.start_interval(chart)
+            default=Mt5.TIMEFRAME_H4,
+            func=lambda chart: self.on_timeframe_change(chart)
         )
-        self.chart.events.new_bar += self.on_new_bar
-        self.chart.events.search += self.on_search
+        self._chart.events.new_bar += self.on_new_bar
+        self._chart.events.search += self.on_search
 
-        self.chart.topbar.textbox('symbol', self.symbol)
-        self.chart.toolbox.import_drawings('draw.json')
-        self.chart.toolbox.load_drawings(self.chart.topbar['symbol'].value)
-        self.chart.toolbox.save_drawings_under(self.chart.topbar['symbol'])
+        self._chart.topbar.textbox('symbol', self.symbol)
+        # self.chart.toolbox.import_drawings('draw.json')
+        self._chart.toolbox.load_drawings(self._chart.topbar['symbol'].value)
+        self._chart.toolbox.save_drawings_under(self._chart.topbar['symbol'])
 
-        self.layout.addWidget(self.chart.get_webview())
+        self.layout.addWidget(self._chart.get_webview())
         self.setCentralWidget(self.widget)
+        self.start_interval()
 
-        self.start_interval(chart=self.chart)
-
-    def start_interval(self, chart):
+    def start_interval(self):
         if self.data_thread is not None and self.data_thread.running:
             self.data_thread.stop()
+        print("Stop")
         self.data_thread = DataUpdater(
-            chart=chart,
+            chart=self._chart,
             parent=self
         )
         # noinspection PyUnresolvedReferences
         self.data_thread.data_updated.connect(self.update_chart)
         self.data_thread.start()
 
-    def on_timeframe_change(self, chart):
-        self.start_interval(chart=chart)
+    def on_timeframe_change(self, c):
+        print("Đổi time frame")
+        self._chart.clear_markers()
+        self.start_interval()
 
     @staticmethod
     def calculate_sma(df, period: int = 50):
@@ -164,10 +165,10 @@ class TradingView(QMainWindow):
         }).dropna()
 
     @staticmethod
-    def on_search(self, chart, searched_string):
+    def on_search(self, searched_string):
         self.symbol = searched_string
-        print(f'Search Text: "{searched_string}" | Chart/SubChart ID: "{chart.id}"')
-        chart.topbar['symbol'].set(searched_string)
+        print(f'Search Text: "{searched_string}" | Chart/SubChart ID: "{self._chart.id}"')
+        self._chart.topbar['symbol'].set(searched_string)
 
     @staticmethod
     def on_new_bar(chart):
@@ -211,13 +212,14 @@ class TradingView(QMainWindow):
         df["PSAR"] = talib.SAR(df["high"], df["low"])
 
     def update_chart(self, df):
+        self._chart.clear_markers()
         df = df.tail(250).copy()
         df.reset_index(inplace=True)
         # Tính các chỉ báo kỹ thuật
         self.analyze(df)
         self.detect_peaks_troughs(df)
         # Cập nhật biểu đồ
-        self.chart.set(df=df, keep_drawings=True, keep_scalling=True)
+        self._chart.set(df=df, keep_drawings=True, keep_scalling=True)
 
         # Danh sách indicator + trọng số
         # @formatter:off
@@ -300,7 +302,8 @@ class TradingView(QMainWindow):
                     )
                 )
 
-        self.chart.marker_list([asdict(m) for m in markers])
+        print(len(markers))
+        self._chart.marker_list([asdict(m) for m in markers])
 
     def draw(self):
         self.show()
@@ -309,7 +312,7 @@ class TradingView(QMainWindow):
         self.data_thread.stop()
 
     def closeEvent(self, event):
-        self.chart.toolbox.export_drawings('draw.json')
+        self._chart.toolbox.export_drawings('draw.json')
         print("Close")
 
 
