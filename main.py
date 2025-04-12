@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import asdict
 
 import MetaTrader5 as Mt5
 import pandas as pd
@@ -9,6 +10,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from pandas import DataFrame
 
 from chart.lightweight_charts.widgets import QtChart
+from model import MarkerObject
 from technicals import Compute
 from util import DataUtil
 
@@ -163,8 +165,8 @@ class TradingView(QMainWindow):
     def on_new_bar(chart):
         print('New bar event!')
 
-    def update_chart(self, df):
-        # Tính các chỉ báo kỹ thuật
+    @staticmethod
+    def analyze(df):
         df["MA20"] = talib.SMA(df["close"], timeperiod=20)
         df["RSI14"] = talib.RSI(df["close"], timeperiod=14)
         df["K"], df["D"] = talib.STOCH(df["high"], df["low"], df["close"])
@@ -178,6 +180,9 @@ class TradingView(QMainWindow):
         df["BB_upper"], df["BB_middle"], df["BB_lower"] = talib.BBANDS(df["close"])
         df["PSAR"] = talib.SAR(df["high"], df["low"])
 
+    def update_chart(self, df):
+        # Tính các chỉ báo kỹ thuật
+        self.analyze(df)
         # Cập nhật biểu đồ
         self.chart.set(df=df, keep_drawings=True)
 
@@ -197,6 +202,7 @@ class TradingView(QMainWindow):
             {"name": "PSAR", "weight": 1.0, "compute": lambda l, p, p2: Compute.PSAR(l['PSAR'], l['open'])},
         ]
         # @formatter:on
+        markers: list[MarkerObject] = []
         rows = df.to_dict("records")
         for i in range(2, len(rows)):
             last = df.iloc[i]
@@ -220,30 +226,27 @@ class TradingView(QMainWindow):
                 else:
                     neutral_score += weight
 
-            # print(f"Time: {last['time']}, BUY: {buy_score}, SELL: {sell_score}, NEUTRAL: {neutral_score}")
-            # for name, signal, weight in result_detail:
-            #     print(f" - {name}: {signal} (w={weight})")
-
-            marker_text = None
             if buy_score > sell_score + neutral_score:
-                marker_text = "Buy"
-                position = "below"
-                color = "#00FF00"
-                shape = "arrow_up"
-            elif sell_score > buy_score + neutral_score:
-                marker_text = "Sell"
-                position = "above"
-                color = "#FF0000"
-                shape = "arrow_down"
-
-            if marker_text:
-                self.chart.marker(
-                    time=last["time"],
-                    position=position,
-                    color=color,
-                    shape=shape,
-                    text=marker_text
+                markers.append(
+                    MarkerObject(
+                        text="Buy",
+                        position="allow",
+                        color="00FF00",
+                        shape="arrow_up",
+                        time=last["time"]
+                    )
                 )
+            elif sell_score > buy_score + neutral_score:
+                markers.append(
+                    MarkerObject(
+                        text="Sell",
+                        position="below",
+                        color="00FF00",
+                        shape="arrow_down",
+                        time=last["time"]
+                    )
+                )
+        self.chart.marker_list( [asdict(m) for m in markers])
 
     def draw(self):
         self.show()

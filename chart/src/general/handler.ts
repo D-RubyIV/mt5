@@ -154,7 +154,7 @@ export class Handler {
             horzAlign: 'center',
             vertAlign: 'center',
             lines: [{
-                text: 'Watermark Text',
+                text: '',
                 color: 'rgba(255,0,0,0.5)',
                 fontSize: 50,
             }],
