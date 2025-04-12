@@ -219,7 +219,7 @@ class TradingView(QMainWindow):
         self.analyze(df)
         self.detect_peaks_troughs(df)
         # Cập nhật biểu đồ
-        self._chart.set(df=df, keep_drawings=True, keep_scalling=True)
+        self._chart.set(df=df, keep_drawings=True)
 
         # Danh sách indicator + trọng số
         # @formatter:off
@@ -287,7 +287,7 @@ class TradingView(QMainWindow):
                         text="",
                         position="above",
                         color="00FF00",
-                        shape="triangleDown",
+                        shape="arrow_down",
                         time=last["time"]
                     )
                 )
@@ -297,7 +297,7 @@ class TradingView(QMainWindow):
                         text="",
                         position="below",
                         color="00FF00",
-                        shape="triangleUp",
+                        shape="arrow_up",
                         time=last["time"]
                     )
                 )

@@ -6,7 +6,7 @@ import { Point } from "../drawing/data-source";
 import { Drawing, InteractionState } from "../drawing/drawing";
 import { DrawingOptions } from "../drawing/options";
 import { HorizontalLinePaneView } from "./pane-view";
-import { GlobalParams } from "../general";
+import { GlobalParams } from "../general/global-params";
 import { HorizontalLineAxisView } from "./axis-view";
 
 

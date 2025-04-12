@@ -108,8 +108,6 @@ class QtChart(abstract.AbstractChart):
         if using_pyside6:
             self.webview.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self.webview.load(QUrl.fromLocalFile(abstract.INDEX))
-        print(abstract.INDEX)
-        print("OK")
 
 
     def get_webview(self): return self.webview

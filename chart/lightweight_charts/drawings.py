@@ -1,14 +1,14 @@
 import asyncio
-from typing import Union, Optional
-
+import json
 import pandas as pd
 
-from .util import NUM, Pane, as_enum, LINE_STYLE, TIME
+from typing import Union, Optional
 
+
+from .util import NUM, Pane, as_enum, LINE_STYLE, TIME, snake_to_camel
 
 def make_js_point(chart, time, price):
     formatted_time = chart._single_datetime_format(time)
-    print("make_js_point")
     return f'''{{
         "time": {formatted_time},
         "logical": {chart.id}.chart.timeScale()
@@ -28,7 +28,6 @@ class Drawing(Pane):
         formatted_points = []
         for i in range(0, len(points), 2):
             formatted_points.append(make_js_point(self.chart, points[i], points[i + 1]))
-        print(formatted_points)
         self.run_script(f'{self.id}.updatePoints({", ".join(formatted_points)})')
         print(f'{self.id}.updatePoints({", ".join(formatted_points)})')
 

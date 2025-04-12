@@ -1,21 +1,19 @@
-import {Drawing} from "../drawing/drawing";
-import {DrawingOptions} from "../drawing/options";
-import {GlobalParams} from "../general";
+import { Drawing } from "../drawing/drawing";
+import { DrawingOptions } from "../drawing/options";
+import { GlobalParams } from "../general/global-params";
 
 declare const window: GlobalParams;
 
 
 export class ColorPicker {
     private static readonly colors = [
-        '#EBB0B0', '#E9CEA1', '#E5DF80', '#ADEB97', '#A3C3EA', '#D8BDED',
-        '#E15F5D', '#E1B45F', '#E2D947', '#4BE940', '#639AE1', '#D7A0E8',
-        '#E42C2A', '#E49D30', '#E7D827', '#3CFF0A', '#3275E4', '#B06CE3',
-        '#F3000D', '#EE9A14', '#F1DA13', '#2DFC0F', '#1562EE', '#BB00EF',
-        '#B50911', '#E3860E', '#D2BD11', '#48DE0E', '#1455B4', '#6E009F',
-        '#7C1713', '#B76B12', '#8D7A13', '#479C12', '#165579', '#51007E',
-
+        '#EBB0B0','#E9CEA1','#E5DF80','#ADEB97','#A3C3EA','#D8BDED',
+        '#E15F5D','#E1B45F','#E2D947','#4BE940','#639AE1','#D7A0E8',
+        '#E42C2A','#E49D30','#E7D827','#3CFF0A','#3275E4','#B06CE3',
+        '#F3000D','#EE9A14','#F1DA13','#2DFC0F','#1562EE','#BB00EF',
+        '#B50911','#E3860E','#D2BD11','#48DE0E','#1455B4','#6E009F',
+        '#7C1713','#B76B12','#8D7A13','#479C12','#165579','#51007E',
     ]
-
 
     public _div: HTMLDivElement;
     private saveDrawings: Function;
@@ -26,7 +24,7 @@ export class ColorPicker {
     private rgba: number[] | undefined;
 
     constructor(saveDrawings: Function,
-                private colorOption: keyof DrawingOptions,
+        private colorOption: keyof DrawingOptions,
     ) {
         this.saveDrawings = saveDrawings
 
@@ -59,11 +57,11 @@ export class ColorPicker {
 
         this._opacitySlider = document.createElement('input')
         this._opacitySlider.type = 'range'
-        this._opacitySlider.value = (this.opacity * 100).toString();
-        this._opacityLabel.innerText = this._opacitySlider.value + '%'
+        this._opacitySlider.value = (this.opacity*100).toString();
+        this._opacityLabel.innerText = this._opacitySlider.value+'%'
         this._opacitySlider.oninput = () => {
-            this._opacityLabel.innerText = this._opacitySlider.value + '%'
-            this.opacity = parseInt(this._opacitySlider.value) / 100
+            this._opacityLabel.innerText = this._opacitySlider.value+'%'
+            this.opacity = parseInt(this._opacitySlider.value)/100
             this.updateColor()
         }
 
@@ -79,8 +77,8 @@ export class ColorPicker {
     }
 
     private _updateOpacitySlider() {
-        this._opacitySlider.value = (this.opacity * 100).toString();
-        this._opacityLabel.innerText = this._opacitySlider.value + '%';
+        this._opacitySlider.value = (this.opacity*100).toString();
+        this._opacityLabel.innerText = this._opacitySlider.value+'%';
     }
 
     makeColorBox(color: string) {
@@ -122,7 +120,6 @@ export class ColorPicker {
         Drawing.lastHoveredObject.applyOptions({[this.colorOption]: oColor})
         this.saveDrawings()
     }
-
     openMenu(rect: DOMRect) {
         if (!Drawing.lastHoveredObject) return;
         this.rgba = ColorPicker.extractRGBA(
@@ -130,8 +127,8 @@ export class ColorPicker {
         )
         this.opacity = this.rgba[3];
         this._updateOpacitySlider();
-        this._div.style.top = (rect.top - 30) + 'px'
-        this._div.style.left = rect.right + 'px'
+        this._div.style.top = (rect.top-30)+'px'
+        this._div.style.left = rect.right+'px'
         this._div.style.display = 'flex'
 
         setTimeout(() => document.addEventListener('mousedown', (event: MouseEvent) => {
@@ -140,7 +137,6 @@ export class ColorPicker {
             }
         }), 10)
     }
-
     closeMenu() {
         document.body.removeEventListener('click', this.closeMenu)
         this._div.style.display = 'none'

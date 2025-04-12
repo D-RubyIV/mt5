@@ -68,7 +68,7 @@ LINE_STYLE = Literal['solid', 'dotted', 'dashed', 'large_dashed', 'sparse_dotted
 
 MARKER_POSITION = Literal['above', 'below', 'inside']
 
-MARKER_SHAPE = Literal['arrow_up', 'arrow_down', 'circle', 'square', 'triangleUp', 'triangleDown']
+MARKER_SHAPE = Literal['arrow_up', 'arrow_down', 'circle', 'square']
 
 CROSSHAIR_MODE = Literal['normal', 'magnet', 'hidden']
 
