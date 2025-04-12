@@ -1,1 +1,26 @@
-{}
+{
+    "XAUUSDm": [
+        {
+            "type": "Box",
+            "points": [
+                {
+                    "time": 1744391700,
+                    "logical": 8228,
+                    "price": 3231.2998204488777
+                },
+                {
+                    "time": 1744399800,
+                    "logical": 8255,
+                    "price": 3228.354783042394
+                }
+            ],
+            "options": {
+                "fillEnabled": true,
+                "fillColor": "rgba(255, 255, 255, 0.2)",
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        }
+    ]
+}

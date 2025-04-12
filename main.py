@@ -4,10 +4,18 @@ from dataclasses import asdict
 
 import MetaTrader5 as Mt5
 import pandas as pd
+
+# Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
+pd.set_option('display.max_rows', None)  # Không giới hạn số dòng hiển thị
+pd.set_option('display.max_columns', None)  # Không giới hạn số cột hiển thị
+pd.set_option('display.width', None)  # Không giới hạn chiều rộng của bảng
+pd.set_option('display.max_colwidth', None)  # Không giới hạn độ dài của nội dung cột
+
 import talib
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from pandas import DataFrame
+from scipy.signal import find_peaks
 
 from chart.lightweight_charts.widgets import QtChart
 from model import MarkerObject
@@ -118,7 +126,7 @@ class TradingView(QMainWindow):
                 Mt5.TIMEFRAME_H4,
                 Mt5.TIMEFRAME_D1,
             ),
-            default=Mt5.TIMEFRAME_H1,
+            default=Mt5.TIMEFRAME_M5,
             func=lambda chart: self.start_interval(chart)
         )
         self.chart.events.new_bar += self.on_new_bar
@@ -166,6 +174,28 @@ class TradingView(QMainWindow):
         print('New bar event!')
 
     @staticmethod
+    def detect_peaks_troughs(df, window=2):
+        # Tìm các đỉnh và đáy cơ bản
+        peaks, _ = find_peaks(df['high'])
+        troughs, _ = find_peaks(-df['low'])
+
+        # Thêm cột is_peak và is_trough vào DataFrame
+        df['is_peak'] = False
+        df['is_trough'] = False
+
+        # Đánh dấu các đỉnh và đáy trong DataFrame
+        df.loc[peaks, 'is_peak'] = True
+        df.loc[troughs, 'is_trough'] = True
+
+        # Lọc các đỉnh và đáy trong cửa sổ động
+        rolling_max = df['high'].rolling(window=2 * window + 1, center=True, min_periods=1).max()
+        rolling_min = df['low'].rolling(window=2 * window + 1, center=True, min_periods=1).min()
+
+        # Kiểm tra đỉnh và đáy trong cửa sổ
+        df['is_peak'] = df['is_peak'] & (df['high'] == rolling_max)
+        df['is_trough'] = df['is_trough'] & (df['low'] == rolling_min)
+
+    @staticmethod
     def analyze(df):
         df["MA20"] = talib.SMA(df["close"], timeperiod=20)
         df["RSI14"] = talib.RSI(df["close"], timeperiod=14)
@@ -183,6 +213,7 @@ class TradingView(QMainWindow):
     def update_chart(self, df):
         # Tính các chỉ báo kỹ thuật
         self.analyze(df)
+        self.detect_peaks_troughs(df)
         # Cập nhật biểu đồ
         self.chart.set(df=df, keep_drawings=True)
 
@@ -230,7 +261,7 @@ class TradingView(QMainWindow):
                 markers.append(
                     MarkerObject(
                         text="Buy",
-                        position="allow",
+                        position="above",
                         color="00FF00",
                         shape="arrow_up",
                         time=last["time"]
@@ -246,7 +277,28 @@ class TradingView(QMainWindow):
                         time=last["time"]
                     )
                 )
-        self.chart.marker_list( [asdict(m) for m in markers])
+            if last["is_peak"]:
+                markers.append(
+                    MarkerObject(
+                        text="",
+                        position="above",
+                        color="00FF00",
+                        shape="triangleDown",
+                        time=last["time"]
+                    )
+                )
+            elif last["is_trough"]:
+                markers.append(
+                    MarkerObject(
+                        text="",
+                        position="below",
+                        color="00FF00",
+                        shape="triangleUp",
+                        time=last["time"]
+                    )
+                )
+
+        self.chart.marker_list([asdict(m) for m in markers])
 
     def draw(self):
         self.show()
