@@ -1,22 +1,40 @@
 {
     "XAUUSDm": [
         {
-            "type": "Box",
+            "type": "TrendLine",
             "points": [
                 {
-                    "time": 1744391700,
-                    "logical": 8228,
-                    "price": 3231.2998204488777
+                    "time": 1744368300,
+                    "logical": 8150,
+                    "price": 3209.551802992519
                 },
                 {
-                    "time": 1744399800,
-                    "logical": 8255,
-                    "price": 3228.354783042394
+                    "time": null,
+                    "logical": 8279,
+                    "price": 3229.3573241895265
                 }
             ],
             "options": {
-                "fillEnabled": true,
-                "fillColor": "rgba(255, 255, 255, 0.2)",
+                "lineColor": "#1E80F0",
+                "lineStyle": 0,
+                "width": 4
+            }
+        },
+        {
+            "type": "TrendLine",
+            "points": [
+                {
+                    "time": 1744365900,
+                    "logical": 8142,
+                    "price": 3240.6443416458856
+                },
+                {
+                    "time": 1744401900,
+                    "logical": 8262,
+                    "price": 3252.8896907730673
+                }
+            ],
+            "options": {
                 "lineColor": "#1E80F0",
                 "lineStyle": 0,
                 "width": 4

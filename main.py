@@ -211,11 +211,13 @@ class TradingView(QMainWindow):
         df["PSAR"] = talib.SAR(df["high"], df["low"])
 
     def update_chart(self, df):
+        df = df.tail(250).copy()
+        df.reset_index(inplace=True)
         # Tính các chỉ báo kỹ thuật
         self.analyze(df)
         self.detect_peaks_troughs(df)
         # Cập nhật biểu đồ
-        self.chart.set(df=df, keep_drawings=True)
+        self.chart.set(df=df, keep_drawings=True, keep_scalling=True)
 
         # Danh sách indicator + trọng số
         # @formatter:off

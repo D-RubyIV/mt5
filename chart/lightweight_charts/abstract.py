@@ -542,9 +542,10 @@ class Candlestick(SeriesCommon):
 
         # self.run_script(f'{self.id}.makeCandlestickSeries()')
 
-    def set(self, df: Optional[pd.DataFrame] = None, keep_drawings=False):
+    def set(self, df: Optional[pd.DataFrame] = None, keep_drawings=False, keep_scalling = False):
         """
         Sets the initial data for the chart.\n
+        :param keep_scaling: sss
         :param df: columns: date/time, open, high, low, close, volume (if volume enabled).
         :param keep_drawings: keeps any drawings made through the toolbox. Otherwise, they will be deleted.
         """
@@ -570,10 +571,11 @@ class Candlestick(SeriesCommon):
                 continue
             line.set(df[['time', line.name]], format_cols=False)
         # set autoScale to true in case the user has dragged the price scale
-        self.run_script(f'''
-            if (!{self.id}.chart.priceScale("right").options.autoScale)
-                {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
-        ''')
+        if not keep_scalling:
+            self.run_script(f'''
+                if (!{self.id}.chart.priceScale("right").options.autoScale)
+                    {self.id}.chart.priceScale("right").applyOptions({{autoScale: true}})
+            ''')
         # TODO keep drawings doesn't work consistenly w
         if keep_drawings:
             self.run_script(f'{self._chart.id}.toolBox?._drawingTool.repositionOnTime()')
