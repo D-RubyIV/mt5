@@ -7,6 +7,7 @@ import pandas as pd
 from PySide6.QtGui import QAction
 
 from constant import TimeFrames
+from test import analyze_ict_signals_with_pda
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
 pd.set_option('display.max_rows', None)
@@ -210,7 +211,7 @@ class TradingView(QMainWindow):
 
     def update_chart(self, df):
         self._chart.clear_markers()
-        df = df.tail(500).copy()
+        df = df.tail(1000).copy()
         df.reset_index(inplace=True)
         # Tính các chỉ báo kỹ thuật
         self.analyze(df)
@@ -262,49 +263,64 @@ class TradingView(QMainWindow):
                     neutral_score += weight
 
             space = 5
-            if buy_score > sell_score + space:
-                score = f"{round(buy_score - (sell_score + space), 1)}"
-                markers.append(
-                    MarkerObject(
-                        text=f"[{score}]",
-                        position="below",
-                        color="#86A187",
-                        shape="arrow_up",
-                        time=last["time"]
-                    )
-                )
-            elif sell_score > buy_score + space:
-                score = f"{round(sell_score - (buy_score + space), 1)}"
-                markers.append(
-                    MarkerObject(
-                        text=f"[{score}]",
-                        position="above",
-                        color="#E35E5E",
-                        shape="arrow_down",
-                        time=last["time"]
-                    )
-                )
-            if last["is_peak"]:
-                markers.append(
-                    MarkerObject(
-                        text="",
-                        position="above",
-                        color="#000000",
-                        shape="triangleDown",
-                        time=last["time"]
-                    )
-                )
-            elif last["is_trough"]:
-                markers.append(
-                    MarkerObject(
-                        text="",
-                        position="below",
-                        color="#000000",
-                        shape="triangleUp",
-                        time=last["time"]
-                    )
-                )
+            # if buy_score > sell_score + space:
+            #     score = f"{round(buy_score - (sell_score + space), 1)}"
+            #     markers.append(
+            #         MarkerObject(
+            #             text=f"[{score}]",
+            #             position="below",
+            #             color="#86A187",
+            #             shape="arrow_up",
+            #             time=last["time"]
+            #         )
+            #     )
+            # elif sell_score > buy_score + space:
+            #     score = f"{round(sell_score - (buy_score + space), 1)}"
+            #     markers.append(
+            #         MarkerObject(
+            #             text=f"[{score}]",
+            #             position="above",
+            #             color="#E35E5E",
+            #             shape="arrow_down",
+            #             time=last["time"]
+            #         )
+            #     )
+            # if last["is_peak"]:
+            #     markers.append(
+            #         MarkerObject(
+            #             text="",
+            #             position="above",
+            #             color="#000000",
+            #             shape="triangleDown",
+            #             time=last["time"]
+            #         )
+            #     )
+            # elif last["is_trough"]:
+            #     markers.append(
+            #         MarkerObject(
+            #             text="",
+            #             position="below",
+            #             color="#000000",
+            #             shape="triangleUp",
+            #             time=last["time"]
+            #         )
+            #     )
 
+        for sig in analyze_ict_signals_with_pda(df):
+            # print(
+            #     f"{sig['type']} @ {sig['entry_price']} tại nến {sig['index']}, Điểm: {sig['score']}, Lý do: {sig['reason']}, Time: {sig['time']}"
+            # )
+            print(sig)
+            if sig['score'] >= 70:
+                markers.append(
+                    MarkerObject(
+                        text=f"{sig['signal']}{sig['score']}",
+                        position="above" if sig['signal'] == "SELL" else "below",
+                        color="#672672",
+                        shape="arrow_up" if sig['signal'] == "BUY" else "arrow_down",
+                        time=sig["time"]
+                    )
+                )
         print(len(markers))
         self._chart.marker_list([asdict(m) for m in markers])
 

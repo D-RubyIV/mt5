@@ -1,5 +1,5 @@
 from MetaTrader5 import TIMEFRAME_M1, TIMEFRAME_M5, TIMEFRAME_M15, TIMEFRAME_H1, TIMEFRAME_H4, TIMEFRAME_D1
-from PyQt6.uic.Compiler.misc import Literal
+from typing import Literal
 
 TimeFrameKeysLiteral = Literal["1m", "5m", "15m", "h1", "h4", "d1"]
 TimeFrames: dict[str, str] = {
