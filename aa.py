@@ -18,7 +18,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         # Tạo biểu đồ
-        chart = QtChart(widget)
+        chart = QtChart(widget, toolbox=True)
 
         # Lấy dữ liệu từ yfinance
         msft = yf.Ticker("MSFT")

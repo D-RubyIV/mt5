@@ -6,6 +6,8 @@ import MetaTrader5 as Mt5
 import pandas as pd
 from PySide6.QtGui import QAction
 
+from constant import TimeFrames
+
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -14,7 +16,7 @@ pd.set_option('display.max_colwidth', None)
 
 import talib
 from PySide6.QtCore import QThread, Signal, Qt
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFrame, QTextBrowser, QHBoxLayout, QMenu
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QTextBrowser, QHBoxLayout, QMenu
 from pandas import DataFrame
 from scipy.signal import find_peaks
 
@@ -32,14 +34,14 @@ class DataUpdater(QThread):
     def __init__(self, chart: QtChart, parent=None):
         super().__init__(parent)
         self.symbol = chart.topbar['symbol'].value
-        self.timeframe = chart.topbar['timeframe'].value
+        self.timeframe_key = chart.topbar['timeframe_key'].value
         self.running = True
         print(f"Symbol: {self.symbol}")
-        print(f"timeframe: {self.timeframe}")
+        print(f"timeframe Key: {self.timeframe_key}")
 
     def run(self):
         while self.running:
-            data = DataUtil.get_bar_data(mt5=Mt5, timeframe=self.timeframe, symbol=self.symbol)
+            data = DataUtil.get_bar_data(mt5=Mt5, timeframe=TimeFrames[self.timeframe_key], symbol=self.symbol)
             print(type(data))
             if data is not None and not data.empty:
                 # noinspection PyUnresolvedReferences
@@ -55,31 +57,6 @@ class TradingView(QMainWindow):
     symbol = "XAUUSDm"
 
     def __init__(self):
-        timeframes = [
-            {
-                "key": "1m",
-                "value": Mt5.TIMEFRAME_M1
-            },
-            {
-                "key": "5m",
-                "value": Mt5.TIMEFRAME_M5
-            },
-            {
-                "key": "15m",
-                "value": Mt5.TIMEFRAME_M15
-            },
-            {
-                "key": "1h",
-                "value": Mt5.TIMEFRAME_H1
-            },
-            {
-                "key": "4h",
-                "value": Mt5.TIMEFRAME_H4
-            },
-        ]
-        keys_timeframes = tuple(tf["key"] for tf in timeframes)
-        print(keys_timeframes)
-        print(type(keys_timeframes))
         super().__init__()
         self.data_thread = None
         # Khởi tạo MT5
@@ -99,7 +76,7 @@ class TradingView(QMainWindow):
         self.widget = QWidget()
         self.widget.setLayout(self.layout)
 
-        self._chart = QtChart(self.widget, toolbox=True)
+        self._chart = QtChart(self.widget, toolbox=True, scale_candles_only=True)
         self._chart.get_webview().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._chart.get_webview().customContextMenuRequested.connect(self.show_custom_context_menu)
 
@@ -117,18 +94,10 @@ class TradingView(QMainWindow):
             border_up_color="#000000",
 
         )
-        self._chart.topbar.switcher(
-            'timeframe',
-            (
-                Mt5.TIMEFRAME_M1,
-                Mt5.TIMEFRAME_M3,
-                Mt5.TIMEFRAME_M5,
-                Mt5.TIMEFRAME_M15,
-                Mt5.TIMEFRAME_H1,
-                Mt5.TIMEFRAME_H4,
-                Mt5.TIMEFRAME_D1,
-            ),
-            default=Mt5.TIMEFRAME_H4,
+        self._chart.topbar.menu(
+            'timeframe_key',
+            tuple(TimeFrames.keys()),
+            default=list(TimeFrames.keys())[0],
             func=lambda chart: self.on_timeframe_change(chart)
         )
         self._chart.events.new_bar += self.on_new_bar
@@ -180,7 +149,7 @@ class TradingView(QMainWindow):
         self.data_thread.data_updated.connect(self.update_chart)
         self.data_thread.start()
 
-    def on_timeframe_change(self, c):
+    def on_timeframe_change(self, c: QtChart):
         print("Đổi time frame")
         self._chart.clear_markers()
         self.start_interval()
