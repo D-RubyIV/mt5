@@ -4,16 +4,17 @@ from dataclasses import asdict
 
 import MetaTrader5 as Mt5
 import pandas as pd
+from PySide6.QtGui import QAction
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
-pd.set_option('display.max_rows', None)  # Không giới hạn số dòng hiển thị
-pd.set_option('display.max_columns', None)  # Không giới hạn số cột hiển thị
-pd.set_option('display.width', None)  # Không giới hạn chiều rộng của bảng
-pd.set_option('display.max_colwidth', None)  # Không giới hạn độ dài của nội dung cột
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
 
 import talib
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFrame, QTextBrowser, QHBoxLayout, QMenu
 from pandas import DataFrame
 from scipy.signal import find_peaks
 
@@ -26,7 +27,7 @@ os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
 
 
 class DataUpdater(QThread):
-    data_updated = pyqtSignal(DataFrame)
+    data_updated = Signal(DataFrame)
 
     def __init__(self, chart: QtChart, parent=None):
         super().__init__(parent)
@@ -92,13 +93,15 @@ class TradingView(QMainWindow):
         # Tạo UI
         self.resize(1400, 800)
 
-        self.layout = QVBoxLayout()
+        self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.widget = QWidget()
         self.widget.setLayout(self.layout)
 
         self._chart = QtChart(self.widget, toolbox=True)
+        self._chart.get_webview().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._chart.get_webview().customContextMenuRequested.connect(self.show_custom_context_menu)
 
         self._chart.layout(
             background_color="#ffffff",
@@ -137,8 +140,33 @@ class TradingView(QMainWindow):
         self._chart.toolbox.save_drawings_under(self._chart.topbar['symbol'])
 
         self.layout.addWidget(self._chart.get_webview())
+        self.layout.addWidget(self.right_arena())
         self.setCentralWidget(self.widget)
         self.start_interval()
+
+    def show_custom_context_menu(self, pos):
+        menu = QMenu()
+
+        action1 = QAction("Reset chart view", self)
+        action1.triggered.connect(self._chart.scale_price)
+
+        action2 = QAction("Fit chart content", self)
+        action2.triggered.connect(self._chart.fit)
+
+        menu.addAction(action1)
+        menu.addAction(action2)
+
+        # Hiển thị menu tại vị trí global
+        menu.exec(self._chart.get_webview().mapToGlobal(pos))
+
+    def right_arena(self):
+        frame = QFrame(self)
+        frame.setFixedWidth(300)
+        frame_layout = QHBoxLayout(frame)
+        frame_layout.setContentsMargins(0, 0, 0, 0)
+        text_arena = QTextBrowser(frame)
+        frame_layout.addWidget(text_arena)
+        return frame
 
     def start_interval(self):
         if self.data_thread is not None and self.data_thread.running:
