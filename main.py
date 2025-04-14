@@ -213,14 +213,17 @@ class TradingView(QMainWindow):
 
     def update_chart(self, df):
         self._chart.clear_markers()
-        df = df.tail(250).copy()
+        df = df.tail(500).copy()
         df.reset_index(inplace=True)
         # Tính các chỉ báo kỹ thuật
         self.analyze(df)
         self.detect_peaks_troughs(df)
         # Cập nhật biểu đồ
-        self._chart.set(df=df, keep_drawings=True)
-
+        self._chart.set(
+            df=df,
+            keep_drawings=True,
+            keep_price_scale=True
+        )
         # Danh sách indicator + trọng số
         # @formatter:off
         indicators = [
@@ -261,22 +264,25 @@ class TradingView(QMainWindow):
                 else:
                     neutral_score += weight
 
-            if buy_score > sell_score + neutral_score:
+            space = 5
+            if buy_score > sell_score + space:
+                score = f"{round(buy_score - (sell_score + space), 1)}"
                 markers.append(
                     MarkerObject(
-                        text="Buy",
-                        position="above",
-                        color="00FF00",
+                        text=f"[{score}]",
+                        position="below",
+                        color="#86A187",
                         shape="arrow_up",
                         time=last["time"]
                     )
                 )
-            elif sell_score > buy_score + neutral_score:
+            elif sell_score > buy_score + space:
+                score = f"{round(sell_score - (buy_score + space), 1)}"
                 markers.append(
                     MarkerObject(
-                        text="Sell",
-                        position="below",
-                        color="00FF00",
+                        text=f"[{score}]",
+                        position="above",
+                        color="#E35E5E",
                         shape="arrow_down",
                         time=last["time"]
                     )
@@ -286,8 +292,8 @@ class TradingView(QMainWindow):
                     MarkerObject(
                         text="",
                         position="above",
-                        color="00FF00",
-                        shape="arrow_down",
+                        color="#000000",
+                        shape="triangleDown",
                         time=last["time"]
                     )
                 )
@@ -296,8 +302,8 @@ class TradingView(QMainWindow):
                     MarkerObject(
                         text="",
                         position="below",
-                        color="00FF00",
-                        shape="arrow_up",
+                        color="#000000",
+                        shape="triangleUp",
                         time=last["time"]
                     )
                 )
@@ -320,6 +326,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     view = TradingView()
     view.draw()
+    view.maximumSize()
 
     app.aboutToQuit.connect(view.stop)
     app.exec()
