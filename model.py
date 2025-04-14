@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Literal
+
+from constant import TimeFrames, TimeFrameKeysLiteral
 
 
 @dataclass
@@ -10,3 +12,9 @@ class MarkerObject:
     color: Optional[str]
     shape: Optional[Literal["arrow_up", "arrow_down", "circle", "square", "triangleUp", "triangleDown"]]
     time: datetime
+
+
+@dataclass
+class NoteTrendObject:
+    trend: Literal["Uptrend", "Downtrend", "Sideways"]
+    time_frame: TimeFrameKeysLiteral
