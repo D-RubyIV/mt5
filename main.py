@@ -6,10 +6,8 @@ import MetaTrader5 as Mt5
 import pandas as pd
 from PySide6.QtGui import QAction
 
-from backtest import backtest
 from constant import TimeFrames
 from level import MultiLevelPeaksTroughs
-from test import analyze_ict_signals_with_pda
 from trend import TrendDetector
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
@@ -22,7 +20,6 @@ import talib
 from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QTextBrowser, QHBoxLayout, QMenu
 from pandas import DataFrame
-from scipy.signal import find_peaks
 
 from chart.lightweight_charts.widgets import QtChart
 from model import MarkerObject
@@ -176,7 +173,6 @@ class TradingView(QMainWindow):
 
     @staticmethod
     def detect_multi_level_peaks_troughs(df, max_level=3, base_window=2):
-        import numpy as np
         from scipy.signal import find_peaks
 
         # Khởi tạo cột cấp độ
@@ -244,7 +240,6 @@ class TradingView(QMainWindow):
             keep_price_scale=True
         )
         markers: list[MarkerObject] = []
-        rows = df.to_dict("records")
         for i in range(2, len(df)):
             row = df.iloc[i]
             max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
@@ -274,44 +269,10 @@ class TradingView(QMainWindow):
                     break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
         print(df)
 
-            # if last["signal"] is not None:
-            #     markers.append(
-            #         MarkerObject(
-            #             text=f'{last["signal"]} - {last["score"]}',
-            #             position="above" if last['signal'] == "SELL" else "below",
-            #             color="#672672",
-            #             shape="arrow_up" if last['signal'] == "BUY" else "arrow_down",
-            #             time=last["time"]
-            #         )
-            #     )
-
-        #     # print(
-        #     #     f"{sig['type']} @ {sig['entry_price']} tại nến {sig['index']}, Điểm: {sig['score']}, Lý do: {sig['reason']}, Time: {sig['time']}"
-        #     # )
-        #     print(sig)
-        #     if sig['score'] >= 70:
-        #         markers.append(
-        #             MarkerObject(
-        #                 text=f'{sig["signal"]} - {sig["score"]} - {",".join(sig["factors"])}',
-        #                 position="above" if sig['signal'] == "SELL" else "below",
-        #                 color="#672672",
-        #                 shape="arrow_up" if sig['signal'] == "BUY" else "arrow_down",
-        #                 time=sig["time"]
-        #             )
-        #         )
-        # print(len(markers))
         self._chart.marker_list([asdict(m) for m in markers])
         max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
         TrendDetector.print_latest_trends(trend_by_level)
-
-        # result_df, win_count, loss_count, pnl_ratio, total_pnl = backtest(df)
-        # print(result_df)
-        # # In kết quả
-        # print(f'Win Count: {win_count}')
-        # print(f'Loss Count: {loss_count}')
-        # print(f'PnL Ratio: {pnl_ratio:.2f}')
-        # print(f'Total PnL: {total_pnl:.2f}')
 
     def draw(self):
         self.show()
