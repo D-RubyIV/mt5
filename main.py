@@ -9,7 +9,6 @@ from PySide6.QtGui import QAction, QIcon
 from constant import TimeFrames
 from level import MultiLevelPeaksTroughs
 from object.model import TrendObject, MarkerObject
-from pda import find_pda_fvg
 from trend import TrendDetector
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
@@ -308,7 +307,6 @@ class TradingView(QMainWindow):
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
         trend_objects = TrendDetector.print_latest_trends(trend_by_level)
         self.trend_arena(trends=trend_objects)
-        find_pda_fvg(df)
 
     def draw(self):
         self.show()
