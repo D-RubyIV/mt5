@@ -9,6 +9,7 @@ from PySide6.QtGui import QAction, QIcon
 from constant import TimeFrames
 from level import MultiLevelPeaksTroughs
 from object.model import TrendObject, MarkerObject
+from pda import find_pda_fvg
 from trend import TrendDetector
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
@@ -266,7 +267,6 @@ class TradingView(QMainWindow):
         # df = analyze_ict_signals_with_pda(df)
         # Tính các chỉ báo kỹ thuật
         df = MultiLevelPeaksTroughs.detect_all_levels(df, max_level=100)
-        print(df.head())
         # Cập nhật biểu đồ
         self._chart.set(
             df=df,
@@ -302,14 +302,13 @@ class TradingView(QMainWindow):
                             )
                         )
                         break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
-        print(df)
-
+        print(df.head())
         self._chart.marker_list([asdict(m) for m in markers])
         max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
         trend_objects = TrendDetector.print_latest_trends(trend_by_level)
-        print(trend_objects)
         self.trend_arena(trends=trend_objects)
+        find_pda_fvg(df)
 
     def draw(self):
         self.show()
