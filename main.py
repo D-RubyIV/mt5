@@ -6,6 +6,7 @@ import MetaTrader5 as Mt5
 import pandas as pd
 from PySide6.QtGui import QAction
 
+from backtest import backtest
 from constant import TimeFrames
 from test import analyze_ict_signals_with_pda
 
@@ -23,7 +24,6 @@ from scipy.signal import find_peaks
 
 from chart.lightweight_charts.widgets import QtChart
 from model import MarkerObject
-from technicals import Compute
 from util import DataUtil
 
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
@@ -98,7 +98,7 @@ class TradingView(QMainWindow):
         self._chart.topbar.menu(
             'timeframe_key',
             tuple(TimeFrames.keys()),
-            default=list(TimeFrames.keys())[0],
+            default=list(TimeFrames.keys())[-1],
             func=lambda chart: self.on_timeframe_change(chart)
         )
         self._chart.events.new_bar += self.on_new_bar
@@ -211,118 +211,77 @@ class TradingView(QMainWindow):
 
     def update_chart(self, df):
         self._chart.clear_markers()
-        df = df.tail(1000).copy()
+        df = df.tail(500).copy()
         df.reset_index(inplace=True)
+        df = analyze_ict_signals_with_pda(df)
         # Tính các chỉ báo kỹ thuật
-        self.analyze(df)
         self.detect_peaks_troughs(df)
+        print(df)
         # Cập nhật biểu đồ
         self._chart.set(
             df=df,
             keep_drawings=True,
             keep_price_scale=True
         )
-        # Danh sách indicator + trọng số
-        # @formatter:off
-        indicators = [
-            {"name": "MA", "weight": 1.0, "compute": lambda l, p, p2: Compute.MA(l['MA20'], l['close'])},
-            {"name": "RSI", "weight": 1.5, "compute": lambda l, p, p2: Compute.RSI(l['RSI14'], p['RSI14'])},
-            {"name": "Stoch", "weight": 1.0, "compute": lambda l, p, p2: Compute.Stoch(l['K'], l['D'], p['K'], p['D'])},
-            {"name": "CCI20", "weight": 1.0, "compute": lambda l, p, p2: Compute.CCI20(l['CCI20'], p['CCI20'])},
-            {"name": "ADX", "weight": 2.0, "compute": lambda l, p, p2: Compute.ADX(l['ADX'], l['+DI'], l['-DI'], p['+DI'], p['-DI'])},
-            {"name": "AO", "weight": 1.2, "compute": lambda l, p, p2: Compute.AO(l['AO'], p['AO'], p2['AO'])},
-            {"name": "MOM", "weight": 1.0, "compute": lambda l, p, p2: Compute.Mom(l['MOM'], p['MOM'])},
-            {"name": "MACD", "weight": 2.0, "compute": lambda l, p, p2: Compute.MACD(l['MACD'], l['MACD_signal'])},
-            {"name": "BBBuy", "weight": 1.5, "compute": lambda l, p, p2: Compute.BBBuy(l['close'], l['BB_lower'])},
-            {"name": "BBSell", "weight": 1.5, "compute": lambda l, p, p2: Compute.BBSell(l['close'], l['BB_upper'])},
-            {"name": "PSAR", "weight": 1.0, "compute": lambda l, p, p2: Compute.PSAR(l['PSAR'], l['open'])},
-        ]
-        # @formatter:on
         markers: list[MarkerObject] = []
         rows = df.to_dict("records")
         for i in range(2, len(rows)):
             last = df.iloc[i]
-            prev = df.iloc[i - 1]
-            prev2 = df.iloc[i - 2]
-
-            buy_score = 0
-            sell_score = 0
-            neutral_score = 0
-            result_detail = []
-
-            for ind in indicators:
-                signal = ind["compute"](last, prev, prev2)
-                weight = ind["weight"]
-                result_detail.append((ind["name"], signal, weight))
-
-                if signal == "BUY":
-                    buy_score += weight
-                elif signal == "SELL":
-                    sell_score += weight
-                else:
-                    neutral_score += weight
-
-            space = 5
-            # if buy_score > sell_score + space:
-            #     score = f"{round(buy_score - (sell_score + space), 1)}"
-            #     markers.append(
-            #         MarkerObject(
-            #             text=f"[{score}]",
-            #             position="below",
-            #             color="#86A187",
-            #             shape="arrow_up",
-            #             time=last["time"]
-            #         )
-            #     )
-            # elif sell_score > buy_score + space:
-            #     score = f"{round(sell_score - (buy_score + space), 1)}"
-            #     markers.append(
-            #         MarkerObject(
-            #             text=f"[{score}]",
-            #             position="above",
-            #             color="#E35E5E",
-            #             shape="arrow_down",
-            #             time=last["time"]
-            #         )
-            #     )
-            # if last["is_peak"]:
-            #     markers.append(
-            #         MarkerObject(
-            #             text="",
-            #             position="above",
-            #             color="#000000",
-            #             shape="triangleDown",
-            #             time=last["time"]
-            #         )
-            #     )
-            # elif last["is_trough"]:
-            #     markers.append(
-            #         MarkerObject(
-            #             text="",
-            #             position="below",
-            #             color="#000000",
-            #             shape="triangleUp",
-            #             time=last["time"]
-            #         )
-            #     )
-
-        for sig in analyze_ict_signals_with_pda(df):
-            # print(
-            #     f"{sig['type']} @ {sig['entry_price']} tại nến {sig['index']}, Điểm: {sig['score']}, Lý do: {sig['reason']}, Time: {sig['time']}"
-            # )
-            print(sig)
-            if sig['score'] >= 70:
+            if last["is_peak"]:
                 markers.append(
                     MarkerObject(
-                        text=f"{sig['signal']}{sig['score']}",
-                        position="above" if sig['signal'] == "SELL" else "below",
-                        color="#672672",
-                        shape="arrow_up" if sig['signal'] == "BUY" else "arrow_down",
-                        time=sig["time"]
+                        text="",
+                        position="above",
+                        color="#000000",
+                        shape="triangleDown",
+                        time=last["time"]
                     )
                 )
-        print(len(markers))
+            elif last["is_trough"]:
+                markers.append(
+                    MarkerObject(
+                        text="",
+                        position="below",
+                        color="#000000",
+                        shape="triangleUp",
+                        time=last["time"]
+                    )
+                )
+
+            if last["signal"] is not None:
+                markers.append(
+                    MarkerObject(
+                        text=f'{last["signal"]} - {last["score"]}',
+                        position="above" if last['signal'] == "SELL" else "below",
+                        color="#672672",
+                        shape="arrow_up" if last['signal'] == "BUY" else "arrow_down",
+                        time=last["time"]
+                    )
+                )
+
+        #     # print(
+        #     #     f"{sig['type']} @ {sig['entry_price']} tại nến {sig['index']}, Điểm: {sig['score']}, Lý do: {sig['reason']}, Time: {sig['time']}"
+        #     # )
+        #     print(sig)
+        #     if sig['score'] >= 70:
+        #         markers.append(
+        #             MarkerObject(
+        #                 text=f'{sig["signal"]} - {sig["score"]} - {",".join(sig["factors"])}',
+        #                 position="above" if sig['signal'] == "SELL" else "below",
+        #                 color="#672672",
+        #                 shape="arrow_up" if sig['signal'] == "BUY" else "arrow_down",
+        #                 time=sig["time"]
+        #             )
+        #         )
+        # print(len(markers))
         self._chart.marker_list([asdict(m) for m in markers])
+        result_df, win_count, loss_count, pnl_ratio, total_pnl = backtest(df)
+        print(result_df)
+        # In kết quả
+        print(f'Win Count: {win_count}')
+        print(f'Loss Count: {loss_count}')
+        print(f'PnL Ratio: {pnl_ratio:.2f}')
+        print(f'Total PnL: {total_pnl:.2f}')
 
     def draw(self):
         self.show()

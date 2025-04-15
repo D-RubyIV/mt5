@@ -44,7 +44,7 @@ class DataUtil:
             print(f'No data for "{symbol}"')
             return pd.DataFrame()
         else:
-            date_from = datetime(2025, 3, 2)
+            date_from = datetime(2025, 1, 15)
             date_to = datetime.now()
             prices = pd.DataFrame(
                 mt5.copy_rates_range(

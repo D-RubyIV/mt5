@@ -67,9 +67,9 @@ def detect_order_block(df):
     last = df.iloc[-3]
     current = df.iloc[-2]
     next_candle = df.iloc[-1]
-    if last['close'] < last['open'] and current['close'] > current['open'] and next_candle['close'] > current['close']:
+    if last['close'] < last['open'] and current['open'] < current['close'] < next_candle['close']:
         return "bullish_ob", 15
-    elif last['close'] > last['open'] and current['close'] < current['open'] and next_candle['close'] < current['close']:
+    elif last['close'] > last['open'] and current['open'] > current['close'] > next_candle['close']:
         return "bearish_ob", 15
     return None, 0
 
@@ -83,11 +83,14 @@ def detect_consolidation(df):
     return None, 0
 
 def analyze_ict_signals_with_pda(df):
-    signals = []
+    df = df.copy()
+    df['signal'] = None
+    df['score'] = 0
+    df['factors'] = None
 
     for i in range(30, len(df)):
         chunk = df.iloc[i-30:i+1].copy()
-        timestamp = chunk['time'].iloc[-1]
+        timestamp = df['time'].iloc[i]
         score = 0
         factors = []
 
@@ -127,13 +130,10 @@ def analyze_ict_signals_with_pda(df):
             score += s
             factors.append("Consolidation")
 
-        # ✅ Điều kiện vào lệnh: có MSB + PDA zone + ít nhất 1 yếu tố phụ
+        # Điều kiện vào lệnh
         if trend and pda_ok and len(factors) >= 3 and score >= 60:
-            signals.append({
-                "time": str(timestamp),
-                "signal": "BUY" if trend == "bullish" else "SELL",
-                "score": score,
-                "factors": factors
-            })
+            df.at[i, 'signal'] = "BUY" if trend == "bullish" else "SELL"
+            df.at[i, 'score'] = score
+            df.at[i, 'factors'] = ", ".join(factors)
 
-    return signals
+    return df
