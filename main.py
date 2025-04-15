@@ -4,10 +4,11 @@ from dataclasses import asdict
 
 import MetaTrader5 as Mt5
 import pandas as pd
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 
 from constant import TimeFrames
 from level import MultiLevelPeaksTroughs
+from object.model import TrendObject, MarkerObject
 from trend import TrendDetector
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
@@ -17,15 +18,16 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
 import talib
-from PySide6.QtCore import QThread, Signal, Qt
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QTextBrowser, QHBoxLayout, QMenu
+from PySide6.QtCore import QThread, Signal, Qt, QSize
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QMenu, QPushButton, \
+    QVBoxLayout, QSpacerItem, QSizePolicy
 from pandas import DataFrame
 
 from chart.lightweight_charts.widgets import QtChart
-from model import MarkerObject
 from util import DataUtil, get_color_for_level
 
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
+MIN_LEVEL_DRAW = 2
 
 
 class DataUpdater(QThread):
@@ -59,6 +61,7 @@ class TradingView(QMainWindow):
     def __init__(self):
         super().__init__()
         self.data_thread = None
+        self.layout_trend_card = None
         # Khởi tạo MT5
         Mt5.initialize()
         self.login = 244519321
@@ -92,12 +95,11 @@ class TradingView(QMainWindow):
             down_color="#000000",
             border_down_color="#000000",
             border_up_color="#000000",
-
         )
         self._chart.topbar.menu(
             'timeframe_key',
             tuple(TimeFrames.keys()),
-            default=list(TimeFrames.keys())[1],
+            default=list(TimeFrames.keys())[3],
             func=lambda chart: self.on_timeframe_change(chart)
         )
         self._chart.events.new_bar += self.on_new_bar
@@ -107,10 +109,15 @@ class TradingView(QMainWindow):
         # self.chart.toolbox.import_drawings('draw.json')
         self._chart.toolbox.load_drawings(self._chart.topbar['symbol'].value)
         self._chart.toolbox.save_drawings_under(self._chart.topbar['symbol'])
-
+        ######################
+        ######################
+        ######################
         self.layout.addWidget(self._chart.get_webview())
-        self.layout.addWidget(self.right_arena())
+        self.trend_arena([])
         self.setCentralWidget(self.widget)
+        ######################
+        ######################
+        ######################
         self.start_interval()
 
     def show_custom_context_menu(self, pos):
@@ -128,14 +135,41 @@ class TradingView(QMainWindow):
         # Hiển thị menu tại vị trí global
         menu.exec(self._chart.get_webview().mapToGlobal(pos))
 
-    def right_arena(self):
+    def trend_arena(self, trends: list[TrendObject]):
+        item = self.layout.itemAt(1)  # lấy item ở vị trí 0
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                self.layout.removeWidget(widget)
+                widget.deleteLater()
+
         frame = QFrame(self)
         frame.setFixedWidth(300)
-        frame_layout = QHBoxLayout(frame)
+        frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
-        text_arena = QTextBrowser(frame)
-        frame_layout.addWidget(text_arena)
-        return frame
+        for trend in trends[::-1]:
+            if "Uptrend" in str(trend.trend) or "Downtrend" in str(trend.trend):
+                frame_trend_card = QFrame()
+                self.layout_trend_card = QHBoxLayout(frame_trend_card)
+                self.layout_trend_card.setContentsMargins(0, 0, 0, 0)
+                button = QPushButton(f"[{trend.level}] - {trend.trend}")
+                button.setStyleSheet("background-color: transparent; border: none;")
+                button.setIcon(
+                    QIcon(
+                        "resource/icon/down_trend.png" if "Downtrend" in str(
+                            trend.trend) else "resource/icon/up_trend.png"
+                    )
+                )
+                button.setIconSize(QSize(6 * (trend.level + 1), 6 * (trend.level + 1)))
+                self.layout_trend_card.addWidget(button)
+
+                card_spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+                self.layout_trend_card.addItem(card_spacer)
+
+                frame_layout.addWidget(frame_trend_card)
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        frame_layout.addItem(spacer)
+        self.layout.insertWidget(1, frame)  # Chèn ở vị trí đầu tiên
 
     def start_interval(self):
         if self.data_thread is not None and self.data_thread.running:
@@ -244,35 +278,38 @@ class TradingView(QMainWindow):
             row = df.iloc[i]
             max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
             for level in reversed(range(1, max_level + 1)):
-                if row.get(f"peak_level_{level}", False):
-                    markers.append(
-                        MarkerObject(
-                            text=f"H{level}",
-                            position="above",
-                            color=get_color_for_level(level),
-                            shape="triangleDown",
-                            time=row["time"]
+                if level >= MIN_LEVEL_DRAW:
+                    if row.get(f"peak_level_{level}", False):
+                        markers.append(
+                            MarkerObject(
+                                text=f"H{level}",
+                                position="above",
+                                color=get_color_for_level(level),
+                                shape="triangleDown",
+                                time=row["time"]
+                            )
                         )
-                    )
-                    break  # Đã đánh dấu peak rồi thì không xét level thấp hơn nữa
+                        break  # Đã đánh dấu peak rồi thì không xét level thấp hơn nữa
 
-                elif row.get(f"trough_level_{level}", False):
-                    markers.append(
-                        MarkerObject(
-                            text=f"L{level}",
-                            position="below",
-                            color=get_color_for_level(level),
-                            shape="triangleUp",
-                            time=row["time"]
+                    elif row.get(f"trough_level_{level}", False):
+                        markers.append(
+                            MarkerObject(
+                                text=f"L{level}",
+                                position="below",
+                                color=get_color_for_level(level),
+                                shape="triangleUp",
+                                time=row["time"]
+                            )
                         )
-                    )
-                    break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
+                        break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
         print(df)
 
         self._chart.marker_list([asdict(m) for m in markers])
         max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
-        TrendDetector.print_latest_trends(trend_by_level)
+        trend_objects = TrendDetector.print_latest_trends(trend_by_level)
+        print(trend_objects)
+        self.trend_arena(trends=trend_objects)
 
     def draw(self):
         self.show()

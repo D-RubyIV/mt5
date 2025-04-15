@@ -1,48 +1,58 @@
+from object.model import TrendObject
+
+
 class TrendDetector:
     @staticmethod
     def detect_latest_trend(df, level_max=3):
         latest_trend_by_level = {}
+        current_price = df.iloc[-1]['close']  # Giá hiện tại
 
         for level in range(1, level_max + 1):
             peak_col = f"peak_level_{level}"
             trough_col = f"trough_level_{level}"
 
-            peaks = df[df[peak_col]]
-            troughs = df[df[trough_col]]
+            peaks = df[df[peak_col]].reset_index(drop=True)
+            troughs = df[df[trough_col]].reset_index(drop=True)
 
-            # Gộp đỉnh và đáy lại để so thời gian
-            combined = []
-            for i in range(1, len(peaks)):
-                combined.append((peaks.iloc[i]['time'], 'peak', peaks.iloc[i]['high'], peaks.iloc[i - 1]['high']))
-            for i in range(1, len(troughs)):
-                combined.append((troughs.iloc[i]['time'], 'trough', troughs.iloc[i]['low'], troughs.iloc[i - 1]['low']))
+            if len(peaks) >= 1 and len(troughs) >= 1:
+                # Đỉnh và đáy gần nhất
+                latest_peak = peaks.iloc[-1]
+                latest_trough = troughs.iloc[-1]
 
-            # Sắp xếp theo thời gian giảm dần
-            combined.sort(reverse=True, key=lambda x: x[0])
-
-            # Lấy xu hướng gần nhất
-            if combined:
-                time, kind, current, previous = combined[0]
-                if kind == 'peak':
-                    if current > previous:
-                        latest_trend_by_level[level] = f"Uptrend at {time}"
-                    elif current < previous:
-                        latest_trend_by_level[level] = f"Downtrend at {time}"
+                # Kiểm tra xu hướng của Level
+                if level == 1:
+                    # Level 1: So với đỉnh và đáy gần nhất
+                    if current_price > latest_trough['low']:
+                        latest_trend_by_level[level] = f"Uptrend at {latest_trough['time']}"
+                    elif current_price < latest_peak['high']:
+                        latest_trend_by_level[level] = f"Downtrend at {latest_peak['time']}"
                     else:
-                        latest_trend_by_level[level] = f"Sideways at {time}"
-                else:  # trough
-                    if current > previous:
-                        latest_trend_by_level[level] = f"Uptrend at {time}"
-                    elif current < previous:
-                        latest_trend_by_level[level] = f"Downtrend at {time}"
+                        latest_trend_by_level[level] = f"Sideways at {latest_peak['time']}"
+
+                elif level == 2:
+                    # Level 2: So với đỉnh đáy gần nhất ở Level 2
+                    if current_price > latest_trough['low']:
+                        latest_trend_by_level[level] = f"Uptrend at {latest_trough['time']}"
+                    elif current_price < latest_peak['high']:
+                        latest_trend_by_level[level] = f"Downtrend at {latest_peak['time']}"
                     else:
-                        latest_trend_by_level[level] = f"Sideways at {time}"
-            else:
-                latest_trend_by_level[level] = "No trend data"
+                        latest_trend_by_level[level] = f"Sideways at {latest_peak['time']}"
+
+                elif level == 3:
+                    # Level 3: So với đỉnh đáy gần nhất ở Level 3
+                    if current_price > latest_trough['low']:
+                        latest_trend_by_level[level] = f"Uptrend at {latest_trough['time']}"
+                    elif current_price < latest_peak['high']:
+                        latest_trend_by_level[level] = f"Downtrend at {latest_peak['time']}"
+                    else:
+                        latest_trend_by_level[level] = f"Sideways at {latest_peak['time']}"
 
         return latest_trend_by_level
 
     @staticmethod
-    def print_latest_trends(latest_trend_by_level):
+    def print_latest_trends(latest_trend_by_level) -> list[TrendObject]:
+        list_trend_objects: list[TrendObject] = []
         for level, trend in latest_trend_by_level.items():
             print(f"Level {level}:\n  {trend}\n")
+            list_trend_objects.append(TrendObject(level, trend))
+        return list_trend_objects
