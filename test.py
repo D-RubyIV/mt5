@@ -46,9 +46,9 @@ def detect_liquidity_sweep(df):
     last_low = df['low'].iloc[-2]
     curr_high = df['high'].iloc[-1]
     curr_low = df['low'].iloc[-1]
-    if curr_high > last_high and df['close'].iloc[-1] < last_high:
+    if curr_high > last_high > df['close'].iloc[-1]:
         return "sweep_high", 10
-    elif curr_low < last_low and df['close'].iloc[-1] > last_low:
+    elif curr_low < last_low < df['close'].iloc[-1]:
         return "sweep_low", 10
     return None, 0
 

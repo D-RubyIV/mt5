@@ -2,6 +2,15 @@ from datetime import datetime
 
 import pandas as pd
 
+def get_color_for_level(level):
+    if level == 1:
+        return "#000000"  # Đen
+    elif level == 2:
+        return "#FFA500"  # Cam
+    elif level == 3:
+        return "#FF0000"  # Đỏ
+    return "#000000"
+
 
 class DataUtil:
     @staticmethod
@@ -44,8 +53,8 @@ class DataUtil:
             print(f'No data for "{symbol}"')
             return pd.DataFrame()
         else:
-            date_from = datetime(2025, 1, 15)
-            date_to = datetime.now()
+            date_from = datetime(2024, 7, 15)
+            date_to = datetime(2024, 8, 15)
             prices = pd.DataFrame(
                 mt5.copy_rates_range(
                     symbol,

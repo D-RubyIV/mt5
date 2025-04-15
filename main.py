@@ -8,7 +8,9 @@ from PySide6.QtGui import QAction
 
 from backtest import backtest
 from constant import TimeFrames
+from level import MultiLevelPeaksTroughs
 from test import analyze_ict_signals_with_pda
+from trend import TrendDetector
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
 pd.set_option('display.max_rows', None)
@@ -24,7 +26,7 @@ from scipy.signal import find_peaks
 
 from chart.lightweight_charts.widgets import QtChart
 from model import MarkerObject
-from util import DataUtil
+from util import DataUtil, get_color_for_level
 
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
 
@@ -98,7 +100,7 @@ class TradingView(QMainWindow):
         self._chart.topbar.menu(
             'timeframe_key',
             tuple(TimeFrames.keys()),
-            default=list(TimeFrames.keys())[-1],
+            default=list(TimeFrames.keys())[1],
             func=lambda chart: self.on_timeframe_change(chart)
         )
         self._chart.events.new_bar += self.on_new_bar
@@ -173,26 +175,44 @@ class TradingView(QMainWindow):
         print('New bar event!')
 
     @staticmethod
-    def detect_peaks_troughs(df, window=2):
-        # Tìm các đỉnh và đáy cơ bản
+    def detect_multi_level_peaks_troughs(df, max_level=3, base_window=2):
+        import numpy as np
+        from scipy.signal import find_peaks
+
+        # Khởi tạo cột cấp độ
+        for level in range(1, max_level + 1):
+            df[f'is_peak_L{level}'] = False
+            df[f'is_trough_L{level}'] = False
+
+        # Cấp độ 1: Đỉnh/đáy nhỏ
         peaks, _ = find_peaks(df['high'])
         troughs, _ = find_peaks(-df['low'])
 
-        # Thêm cột is_peak và is_trough vào DataFrame
-        df['is_peak'] = False
-        df['is_trough'] = False
+        df.loc[peaks, 'is_peak_L1'] = True
+        df.loc[troughs, 'is_trough_L1'] = True
 
-        # Đánh dấu các đỉnh và đáy trong DataFrame
-        df.loc[peaks, 'is_peak'] = True
-        df.loc[troughs, 'is_trough'] = True
+        # Cấp độ từ 2 trở lên
+        for level in range(2, max_level + 1):
+            window = base_window * level
 
-        # Lọc các đỉnh và đáy trong cửa sổ động
-        rolling_max = df['high'].rolling(window=2 * window + 1, center=True, min_periods=1).max()
-        rolling_min = df['low'].rolling(window=2 * window + 1, center=True, min_periods=1).min()
+            for i in range(window, len(df) - window):
+                # Xử lý đỉnh
+                if df.loc[i, f'is_peak_L{level - 1}']:
+                    left = df.loc[i - window:i - 1]
+                    right = df.loc[i + 1:i + window]
+                    if any(left[f'is_peak_L{level - 1}']) and any(right[f'is_peak_L{level - 1}']):
+                        if df.loc[i, 'high'] > max(left['high']) and df.loc[i, 'high'] > max(right['high']):
+                            df.loc[i, f'is_peak_L{level}'] = True
 
-        # Kiểm tra đỉnh và đáy trong cửa sổ
-        df['is_peak'] = df['is_peak'] & (df['high'] == rolling_max)
-        df['is_trough'] = df['is_trough'] & (df['low'] == rolling_min)
+                # Xử lý đáy
+                if df.loc[i, f'is_trough_L{level - 1}']:
+                    left = df.loc[i - window:i - 1]
+                    right = df.loc[i + 1:i + window]
+                    if any(left[f'is_trough_L{level - 1}']) and any(right[f'is_trough_L{level - 1}']):
+                        if df.loc[i, 'low'] < min(left['low']) and df.loc[i, 'low'] < min(right['low']):
+                            df.loc[i, f'is_trough_L{level}'] = True
+
+        return df
 
     @staticmethod
     def analyze(df):
@@ -213,10 +233,10 @@ class TradingView(QMainWindow):
         self._chart.clear_markers()
         df = df.tail(500).copy()
         df.reset_index(inplace=True)
-        df = analyze_ict_signals_with_pda(df)
+        # df = analyze_ict_signals_with_pda(df)
         # Tính các chỉ báo kỹ thuật
-        self.detect_peaks_troughs(df)
-        print(df)
+        df = MultiLevelPeaksTroughs.detect_all_levels(df, max_level=100)
+        print(df.head())
         # Cập nhật biểu đồ
         self._chart.set(
             df=df,
@@ -225,39 +245,45 @@ class TradingView(QMainWindow):
         )
         markers: list[MarkerObject] = []
         rows = df.to_dict("records")
-        for i in range(2, len(rows)):
-            last = df.iloc[i]
-            if last["is_peak"]:
-                markers.append(
-                    MarkerObject(
-                        text="",
-                        position="above",
-                        color="#000000",
-                        shape="triangleDown",
-                        time=last["time"]
+        for i in range(2, len(df)):
+            row = df.iloc[i]
+            max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
+            for level in reversed(range(1, max_level + 1)):
+                if row.get(f"peak_level_{level}", False):
+                    markers.append(
+                        MarkerObject(
+                            text=f"H{level}",
+                            position="above",
+                            color=get_color_for_level(level),
+                            shape="triangleDown",
+                            time=row["time"]
+                        )
                     )
-                )
-            elif last["is_trough"]:
-                markers.append(
-                    MarkerObject(
-                        text="",
-                        position="below",
-                        color="#000000",
-                        shape="triangleUp",
-                        time=last["time"]
-                    )
-                )
+                    break  # Đã đánh dấu peak rồi thì không xét level thấp hơn nữa
 
-            if last["signal"] is not None:
-                markers.append(
-                    MarkerObject(
-                        text=f'{last["signal"]} - {last["score"]}',
-                        position="above" if last['signal'] == "SELL" else "below",
-                        color="#672672",
-                        shape="arrow_up" if last['signal'] == "BUY" else "arrow_down",
-                        time=last["time"]
+                elif row.get(f"trough_level_{level}", False):
+                    markers.append(
+                        MarkerObject(
+                            text=f"L{level}",
+                            position="below",
+                            color=get_color_for_level(level),
+                            shape="triangleUp",
+                            time=row["time"]
+                        )
                     )
-                )
+                    break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
+        print(df)
+
+            # if last["signal"] is not None:
+            #     markers.append(
+            #         MarkerObject(
+            #             text=f'{last["signal"]} - {last["score"]}',
+            #             position="above" if last['signal'] == "SELL" else "below",
+            #             color="#672672",
+            #             shape="arrow_up" if last['signal'] == "BUY" else "arrow_down",
+            #             time=last["time"]
+            #         )
+            #     )
 
         #     # print(
         #     #     f"{sig['type']} @ {sig['entry_price']} tại nến {sig['index']}, Điểm: {sig['score']}, Lý do: {sig['reason']}, Time: {sig['time']}"
@@ -275,13 +301,17 @@ class TradingView(QMainWindow):
         #         )
         # print(len(markers))
         self._chart.marker_list([asdict(m) for m in markers])
-        result_df, win_count, loss_count, pnl_ratio, total_pnl = backtest(df)
-        print(result_df)
-        # In kết quả
-        print(f'Win Count: {win_count}')
-        print(f'Loss Count: {loss_count}')
-        print(f'PnL Ratio: {pnl_ratio:.2f}')
-        print(f'Total PnL: {total_pnl:.2f}')
+        max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
+        trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
+        TrendDetector.print_latest_trends(trend_by_level)
+
+        # result_df, win_count, loss_count, pnl_ratio, total_pnl = backtest(df)
+        # print(result_df)
+        # # In kết quả
+        # print(f'Win Count: {win_count}')
+        # print(f'Loss Count: {loss_count}')
+        # print(f'PnL Ratio: {pnl_ratio:.2f}')
+        # print(f'Total PnL: {total_pnl:.2f}')
 
     def draw(self):
         self.show()
