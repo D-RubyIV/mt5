@@ -6,7 +6,7 @@ import MetaTrader5 as Mt5
 import pandas as pd
 from PySide6.QtGui import QAction, QIcon
 
-from constant import TimeFrames
+from constant import TimeFrames, SYMBOLS
 from level import MultiLevelPeaksTroughs
 from object.model import TrendObject, MarkerObject
 from trend import TrendDetector
@@ -56,8 +56,6 @@ class DataUpdater(QThread):
 
 
 class TradingView(QMainWindow):
-    symbol = "XAUUSDm"
-
     def __init__(self):
         super().__init__()
         self.data_thread = None
@@ -96,16 +94,21 @@ class TradingView(QMainWindow):
             border_down_color="#000000",
             border_up_color="#000000",
         )
-        self._chart.topbar.menu(
+        self._chart.topbar.switcher(
             'timeframe_key',
             tuple(TimeFrames.keys()),
             default=list(TimeFrames.keys())[3],
             func=lambda chart: self.on_timeframe_change(chart)
         )
+        self._chart.topbar.menu(
+            'symbol',
+            tuple(SYMBOLS),
+            default=SYMBOLS[0],
+            func=lambda chart: self.on_symbol_change(chart)
+        )
         self._chart.events.new_bar += self.on_new_bar
         self._chart.events.search += self.on_search
 
-        self._chart.topbar.textbox('symbol', self.symbol)
         # self.chart.toolbox.import_drawings('draw.json')
         self._chart.toolbox.load_drawings(self._chart.topbar['symbol'].value)
         self._chart.toolbox.save_drawings_under(self._chart.topbar['symbol'])
@@ -183,10 +186,17 @@ class TradingView(QMainWindow):
         self.data_thread.data_updated.connect(self.update_chart)
         self.data_thread.start()
 
+    def on_symbol_change(self, c: QtChart):
+        print("Đổi symbol")
+        self._chart.clear_markers()
+        self.start_interval()
+        self._chart.watermark(self._chart.topbar['symbol'].value)
+
     def on_timeframe_change(self, c: QtChart):
         print("Đổi time frame")
         self._chart.clear_markers()
         self.start_interval()
+        self._chart.watermark(self._chart.topbar['symbol'].value)
 
     @staticmethod
     def calculate_sma(df, period: int = 50):
@@ -306,7 +316,6 @@ class TradingView(QMainWindow):
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
         trend_objects = TrendDetector.print_latest_trends(trend_by_level)
         self.trend_arena(trends=trend_objects)
-        print(df.head())
         self._chart.marker_list([asdict(m) for m in markers])
 
     def draw(self):

@@ -53,6 +53,6 @@ class TrendDetector:
     def print_latest_trends(latest_trend_by_level) -> list[TrendObject]:
         list_trend_objects: list[TrendObject] = []
         for level, trend in latest_trend_by_level.items():
-            print(f"Level {level}:\n  {trend}\n")
+            # print(f"Level {level}:\n  {trend}\n")
             list_trend_objects.append(TrendObject(level, trend))
         return list_trend_objects

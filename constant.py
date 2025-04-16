@@ -10,3 +10,4 @@ TimeFrames: dict[str, str] = {
     "h4": TIMEFRAME_H4,
     "d1": TIMEFRAME_D1
 }
+SYMBOLS = ["XAUUSDm", "EURUSDm", "GBPUSDm", "NZDUSDm"]

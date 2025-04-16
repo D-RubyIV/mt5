@@ -1,8 +1,25 @@
 from datetime import datetime, timedelta
 
 import pandas as pd
-from pandas.core.reshape.util import tile_compat
 
+from constant import SYMBOLS, TimeFrames
+
+def timeframe_to_minutes(timeframe_value: int) -> int:
+    FLAG_HOUR = 0x4000
+    FLAG_WEEK = 0x8000
+    FLAG_MONTH = 0xC000
+
+    # Tách phần số bằng cách loại bỏ cờ
+    base_value = timeframe_value & 0x3FFF  # giữ lại 14 bit thấp
+
+    if timeframe_value & FLAG_HOUR:
+        return base_value * 60
+    elif timeframe_value & FLAG_WEEK:
+        return base_value * 7 * 1440  # 1 tuần = 7 ngày
+    elif timeframe_value & FLAG_MONTH:
+        return base_value * 30 * 1440  # 1 tháng ~ 30 ngày
+    else:
+        return base_value  # mặc định là phút
 
 def get_color_for_level(level):
     if level == 1:
@@ -53,11 +70,12 @@ class DataUtil:
     def get_bar_data(mt5, timeframe: str = "", symbol: str = ""):
         from pytz import timezone
         eastern = timezone('Asia/Bangkok')
-        if symbol not in ('XAUUSDm', 'EURUSD', 'GPDUSD'):
+        if symbol not in SYMBOLS:
             print(f'No data for "{symbol}"')
             return pd.DataFrame()
         else:
-            date_from = datetime(2025, 2, 1)
+            print(f"TimeFrame: {timeframe_to_minutes(int(timeframe))}")
+            date_from = datetime.now() - timedelta(minutes=int(timeframe_to_minutes(int(timeframe))) * 500)
             date_to = datetime.now()
             prices = pd.DataFrame(
                 mt5.copy_rates_range(
@@ -68,7 +86,8 @@ class DataUtil:
                 )
             )
             prices["time"] = pd.to_datetime(prices["time"], unit="s")
-            prices['time'] = pd.to_datetime(prices['time'], unit='ms', origin='unix', utc=True).dt.tz_convert(eastern).dt.tz_localize(None)
+            prices['time'] = pd.to_datetime(prices['time'], unit='ms', origin='unix', utc=True).dt.tz_convert(
+                eastern).dt.tz_localize(None)
             prices = prices.rename(columns={
                 'tick_volume': 'volume',
             })
