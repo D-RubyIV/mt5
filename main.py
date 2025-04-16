@@ -261,7 +261,8 @@ class TradingView(QMainWindow):
 
     def update_chart(self, df):
         self._chart.clear_markers()
-        df = df.tail(500).copy()
+        # df = df.tail(500).copy()
+
         df.reset_index(inplace=True)
         # df = analyze_ict_signals_with_pda(df)
         # Tính các chỉ báo kỹ thuật
@@ -301,12 +302,12 @@ class TradingView(QMainWindow):
                             )
                         )
                         break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
-        print(df.head())
-        self._chart.marker_list([asdict(m) for m in markers])
         max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
         trend_objects = TrendDetector.print_latest_trends(trend_by_level)
         self.trend_arena(trends=trend_objects)
+        print(df.head())
+        self._chart.marker_list([asdict(m) for m in markers])
 
     def draw(self):
         self.show()

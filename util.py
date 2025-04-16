@@ -1,6 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
+from pandas.core.reshape.util import tile_compat
+
 
 def get_color_for_level(level):
     if level == 1:
@@ -49,12 +51,14 @@ class DataUtil:
 
     @staticmethod
     def get_bar_data(mt5, timeframe: str = "", symbol: str = ""):
+        from pytz import timezone
+        eastern = timezone('Asia/Bangkok')
         if symbol not in ('XAUUSDm', 'EURUSD', 'GPDUSD'):
             print(f'No data for "{symbol}"')
             return pd.DataFrame()
         else:
-            date_from = datetime(2024, 7, 15)
-            date_to = datetime(2024, 8, 15)
+            date_from = datetime(2025, 2, 1)
+            date_to = datetime.now()
             prices = pd.DataFrame(
                 mt5.copy_rates_range(
                     symbol,
@@ -64,6 +68,7 @@ class DataUtil:
                 )
             )
             prices["time"] = pd.to_datetime(prices["time"], unit="s")
+            prices['time'] = pd.to_datetime(prices['time'], unit='ms', origin='unix', utc=True).dt.tz_convert(eastern).dt.tz_localize(None)
             prices = prices.rename(columns={
                 'tick_volume': 'volume',
             })

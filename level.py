@@ -1,5 +1,5 @@
-import pandas as pd
 from scipy.signal import find_peaks
+
 
 class MultiLevelPeaksTroughs:
     @staticmethod
@@ -30,13 +30,14 @@ class MultiLevelPeaksTroughs:
         new_trough_count = 0
 
         for i in range(1, len(peak_indices) - 1):
-            prev_idx, curr_idx, next_idx = peak_indices[i-1], peak_indices[i], peak_indices[i+1]
-            if df.loc[curr_idx, 'high'] > df.loc[prev_idx, 'high'] and df.loc[curr_idx, 'high'] > df.loc[next_idx, 'high']:
+            prev_idx, curr_idx, next_idx = peak_indices[i - 1], peak_indices[i], peak_indices[i + 1]
+            if df.loc[curr_idx, 'high'] > df.loc[prev_idx, 'high'] and df.loc[curr_idx, 'high'] > df.loc[
+                next_idx, 'high']:
                 df.at[curr_idx, curr_peak] = True
                 new_peak_count += 1
 
         for i in range(1, len(trough_indices) - 1):
-            prev_idx, curr_idx, next_idx = trough_indices[i-1], trough_indices[i], trough_indices[i+1]
+            prev_idx, curr_idx, next_idx = trough_indices[i - 1], trough_indices[i], trough_indices[i + 1]
             if df.loc[curr_idx, 'low'] < df.loc[prev_idx, 'low'] and df.loc[curr_idx, 'low'] < df.loc[next_idx, 'low']:
                 df.at[curr_idx, curr_trough] = True
                 new_trough_count += 1
