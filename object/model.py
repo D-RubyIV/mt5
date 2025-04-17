@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Literal
 
-from constant import TimeFrameKeysLiteral
+from common.constant import TimeFrameKeysLiteral
 
 
 @dataclass

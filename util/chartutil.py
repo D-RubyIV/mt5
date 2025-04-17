@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
-from constant import SYMBOLS, TimeFrames
+from common.constant import SYMBOLS
+
 
 def timeframe_to_minutes(timeframe_value: int) -> int:
     FLAG_HOUR = 0x4000

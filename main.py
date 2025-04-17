@@ -4,12 +4,13 @@ from dataclasses import asdict
 
 import MetaTrader5 as Mt5
 import pandas as pd
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QPixmap
 
-from constant import TimeFrames, SYMBOLS
+from common.constant import TimeFrames, SYMBOLS
 from level import MultiLevelPeaksTroughs
 from object.model import TrendObject, MarkerObject
 from trend import TrendDetector
+from util.toastutil import ToastUtil
 
 # Đặt các tùy chọn hiển thị để in toàn bộ DataFrame
 pd.set_option('display.max_rows', None)
@@ -19,12 +20,22 @@ pd.set_option('display.max_colwidth', None)
 
 import talib
 from PySide6.QtCore import QThread, Signal, Qt, QSize
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QMenu, QPushButton, \
-    QVBoxLayout, QSpacerItem, QSizePolicy
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QFrame,
+    QHBoxLayout,
+    QMenu,
+    QPushButton,
+    QVBoxLayout,
+    QSpacerItem,
+    QSizePolicy
+)
 from pandas import DataFrame
 
 from chart.lightweight_charts.widgets import QtChart
-from util import DataUtil, get_color_for_level
+from util.chartutil import DataUtil, get_color_for_level
 
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = '9222'
 MIN_LEVEL_DRAW = 2
@@ -48,7 +59,7 @@ class DataUpdater(QThread):
             if data is not None and not data.empty:
                 # noinspection PyUnresolvedReferences
                 self.data_updated.emit(data)
-            self.msleep(30000)
+            self.msleep(5000)
 
     def stop(self):
         self.running = False
@@ -57,7 +68,8 @@ class DataUpdater(QThread):
 
 class TradingView(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(TradingView, self).__init__()
+        self.current_trend_objects: list[TrendObject] = []
         self.data_thread = None
         self.layout_trend_card = None
         # Khởi tạo MT5
@@ -116,12 +128,46 @@ class TradingView(QMainWindow):
         ######################
         ######################
         self.layout.addWidget(self._chart.get_webview())
-        self.trend_arena([])
         self.setCentralWidget(self.widget)
         ######################
         ######################
         ######################
         self.start_interval()
+
+    def show_current_trend(self):
+        for obj in self.current_trend_objects[::1]:
+            self.show_toast(
+                message=f"{obj.trend} - {obj.level}",
+                delay=2500,
+                icon=QPixmap(
+                    r"resource/icon/down_trend.png" if obj.trend == "Downtrend" else r"resource/icon/up_trend.png"
+                ),
+                icon_size=20,
+            )
+
+    def show_toast(self,
+                   delay: int = 2500,
+                   title: str = "Thông báo mới",
+                   message: str = "Chào mừng quay trở lại",
+                   color: str = "#292929",
+                   icon: QPixmap = None,
+                   icon_size: int = None,
+                   change_color: bool = False
+                   ):
+        ToastUtil.show_toast(
+            parent=self,
+            screen=screen,
+            delay=delay,
+            title=title,
+            message=message,
+            color=color,
+            icon=icon,
+            icon_size=icon_size,
+            change_color=change_color
+        )
+
+    def showEvent(self, event):
+        super().showEvent(event)
 
     def show_custom_context_menu(self, pos):
         menu = QMenu()
@@ -314,9 +360,10 @@ class TradingView(QMainWindow):
                         break  # Đã đánh dấu trough rồi thì không xét level thấp hơn nữa
         max_level = max(int(col.split('_')[-1]) for col in df.columns if col.startswith('peak_level_'))
         trend_by_level = TrendDetector.detect_latest_trend(df, level_max=max_level)
-        trend_objects = TrendDetector.print_latest_trends(trend_by_level)
-        self.trend_arena(trends=trend_objects)
+        self.current_trend_objects = TrendDetector.print_latest_trends(trend_by_level)
+        # self.trend_arena(self.current_trend_objects)
         self._chart.marker_list([asdict(m) for m in markers])
+        self.show_current_trend()
 
     def draw(self):
         self.show()
@@ -334,6 +381,7 @@ if __name__ == "__main__":
     view = TradingView()
     view.draw()
     view.maximumSize()
+    screen = view.windowHandle().screen()
 
     app.aboutToQuit.connect(view.stop)
     app.exec()
